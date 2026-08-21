@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}アイテム編集 — 研究室冷蔵庫管理{% endblock %}
+{% block content %}
+{% set f = form if form else item %}
+
+<div class="page-head">
+  <h1>アイテムの編集</h1>
+  <span class="sub">ID: {{ item.id }} ／ 登録 {{ item.created_at }}</span>
+</div>
+
+<div class="card" style="max-width: 860px;">
+  {% if item.status != '保管中' %}
+  <div class="flash flash-error" style="margin-bottom:18px;">
+    このアイテムは <strong>{{ item.status }}</strong>（{{ item.out_date }}・実施者 {{ item.out_by_name }}）です。
+    誤って登録した場合は下の「保管中に戻す」にチェックを入れて保存してください。
+  </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('item_edit', item_id=item.id) }}">
+    <div class="form-grid">
+      <div class="full">
+        <label for="name">品名<span class="req">*</span></label>
+        <input type="text" id="name" name="name" value="{{ f.get('name') or '' }}" required>
+      </div>
+      <div>
+        <label for="quantity">数量</label>
+        <input type="text" id="quantity" name="quantity" value="{{ f.get('quantity') or '' }}">
+      </div>
+      <div>
+        <label for="position">冷蔵庫内の位置</label>
+        {% set cur_pos = f.get('position') or '' %}
+        <select id="position" name="position">
+          <option value="">未指定</option>
+          {% for p in positions %}
+          <option value="{{ p }}" {% if cur_pos == p %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+          {% if cur_pos and cur_pos not in positions %}
+          <option value="{{ cur_pos }}" selected>{{ cur_pos }}（旧形式）</option>
+          {% endif %}
+        </select>
+      </div>
+      <div>
+        <label for="owner_id">所有者<span class="req">*</span></label>
+        <select id="owner_id" name="owner_id" required>
+          {% for r in researchers %}
+          <option value="{{ r.id }}" {% if f.get('owner_id')|string == r.id|string %}selected{% endif %}>{{ r.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="fridge_id">冷蔵庫<span class="req">*</span></label>
+        <select id="fridge_id" name="fridge_id" required>
+          {% for fr in fridges %}
+          <option value="{{ fr.id }}" {% if f.get('fridge_id')|string == fr.id|string %}selected{% endif %}>{{ fr.name }}{% if fr.temp %}（{{ fr.temp }}）{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="stored_date">入庫日<span class="req">*</span></label>
+        <input type="date" id="stored_date" name="stored_date" value="{{ f.get('stored_date') or '' }}" required>
+      </div>
+      <div>
+        <label for="expiry_date">保管期限</label>
+        {% set no_exp = (form.get('no_expiry') == '1') if form else (item.expiry_date is none) %}
+        <input type="date" id="expiry_date" name="expiry_date" value="{{ f.get('expiry_date') or '' }}">
+        <div class="chips">
+          <button type="button" class="chip" onclick="addPeriod(7, 0)">+1週間</button>
+          <button type="button" class="chip" onclick="addPeriod(14, 0)">+2週間</button>
+          <button type="button" class="chip" onclick="addPeriod(0, 1)">+1ヶ月</button>
+          <button type="button" class="chip" onclick="addPeriod(0, 3)">+3ヶ月</button>
+          <button type="button" class="chip" onclick="addPeriod(0, 6)">+半年</button>
+          <button type="button" class="chip" onclick="addPeriod(0, 12)">+1年</button>
+        </div>
+        <label class="check-line" style="margin-top:8px;">
+          <input type="checkbox" id="no_expiry" name="no_expiry" value="1"
+                 onchange="toggleExpiry()" {% if no_exp %}checked{% endif %}>
+          <span>期限なし（長期保存）</span>
+        </label>
+      </div>
+      <div class="full">
+        <label for="detail">メモ</label>
+        <textarea id="detail" name="detail">{{ f.get('detail') or '' }}</textarea>
+      </div>
+      <div>
+        <label for="actor_id">操作者（あなた）<span class="req">*</span></label>
+        <select id="actor_id" name="actor_id" required>
+          <option value="">選択してください</option>
+          {% for r in researchers %}
+          <option value="{{ r.id }}" {% if form and form.get('actor_id')|string == r.id|string %}selected{% endif %}>{{ r.name }}</option>
+          {% endfor %}
+        </select>
+        <div class="field-note">変更履歴に記録されます。</div>
+      </div>
+      {% if item.status != '保管中' %}
+      <div>
+        <label>状態の取り消し</label>
+        <label class="check-line" style="margin-top:6px;">
+          <input type="checkbox" name="revert" value="1">
+          <span>保管中に戻す（{{ item.status }}を取り消す）</span>
+        </label>
+      </div>
+      {% endif %}
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn" style="min-width: 160px;">保存する</button>
+      <a class="btn btn-ghost" href="{{ url_for('items') }}">キャンセル</a>
+    </div>
+  </form>
+
+  <div class="danger-zone">
+    <h3>誤登録の削除</h3>
+    <p class="muted" style="margin: 0 0 10px;">入力ミスなどで作成したレコードを削除します。削除の記録は履歴に残りますが、この操作は元に戻せません。</p>
+    <form method="post" action="{{ url_for('item_delete', item_id=item.id) }}"
+          onsubmit="return confirm('「{{ item.name }}」を削除します。よろしいですか？');"
+          class="inline-form">
+      <div class="field-narrow" style="flex: 0 1 220px;">
+        <label for="del_actor">操作者<span class="req">*</span></label>
+        <select id="del_actor" name="actor_id" required>
+          <option value="">選択してください</option>
+          {% for r in researchers %}
+          <option value="{{ r.id }}">{{ r.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-small btn-danger">削除する</button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='item_form.js') }}"></script>
+{% endblock %}

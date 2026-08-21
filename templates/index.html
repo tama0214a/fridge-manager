@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if not has_masters %}
+<div class="card setup-card">
+  <h2>ようこそ 👋 最初の設定</h2>
+  <p>まず<a href="{{ url_for('masters') }}">マスタ管理</a>で「冷蔵庫」と「研究者（利用メンバー）」を登録してください。登録が済むと入庫登録ができるようになります。</p>
+  <a class="btn" href="{{ url_for('masters') }}">マスタ管理をひらく</a>
+</div>
+{% endif %}
+
+<div class="stats">
+  <div class="stat">
+    <a href="{{ url_for('items') }}">
+      <div class="stat-num">{{ stored_count }}</div>
+      <div class="stat-label">保管中のアイテム</div>
+    </a>
+  </div>
+  <div class="stat stat-danger">
+    <div class="stat-num">{{ expired|length }}</div>
+    <div class="stat-label">期限切れ</div>
+  </div>
+  <div class="stat stat-warn">
+    <div class="stat-num">{{ warning|length }}</div>
+    <div class="stat-label">期限間近（{{ cfg.warn_days }}日以内）</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">{{ per_fridge|length }}</div>
+    <div class="stat-label">冷蔵庫</div>
+  </div>
+</div>
+
+{% if expired %}
+<section class="section">
+  <h2><span class="badge badge-danger">期限切れ</span> 対応が必要なアイテム</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>品名</th><th>所有者</th><th>冷蔵庫</th><th>位置</th><th>入庫日</th><th>期限</th><th>超過</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for it in expired %}
+        <tr class="row-expired">
+          <td><span class="item-name">{{ it.name }}</span>{% if it.quantity %}<span class="cell-sub">{{ it.quantity }}</span>{% endif %}</td>
+          <td>{{ it.owner_name }}</td>
+          <td>{{ it.fridge_name }}{% if it.fridge_temp %}<span class="cell-sub">{{ it.fridge_temp }}</span>{% endif %}</td>
+          <td>{{ it.position or "—" }}</td>
+          <td style="white-space:nowrap;">{{ it.stored_date }}</td>
+          <td style="white-space:nowrap;">{{ it.expiry_date }}</td>
+          <td><span class="badge badge-danger">{{ it.exp_label }}</span></td>
+          <td class="cell-actions"><a class="btn btn-small btn-danger" href="{{ url_for('item_out', item_id=it.id) }}">出庫・破棄</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if warning %}
+<section class="section">
+  <h2><span class="badge badge-warn">期限間近</span> {{ cfg.warn_days }}日以内に期限を迎えるアイテム</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>品名</th><th>所有者</th><th>冷蔵庫</th><th>位置</th><th>入庫日</th><th>期限</th><th>残り</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for it in warning %}
+        <tr class="row-warn">
+          <td><span class="item-name">{{ it.name }}</span>{% if it.quantity %}<span class="cell-sub">{{ it.quantity }}</span>{% endif %}</td>
+          <td>{{ it.owner_name }}</td>
+          <td>{{ it.fridge_name }}{% if it.fridge_temp %}<span class="cell-sub">{{ it.fridge_temp }}</span>{% endif %}</td>
+          <td>{{ it.position or "—" }}</td>
+          <td style="white-space:nowrap;">{{ it.stored_date }}</td>
+          <td style="white-space:nowrap;">{{ it.expiry_date }}</td>
+          <td><span class="badge badge-warn">{{ it.exp_label }}</span></td>
+          <td class="cell-actions"><a class="btn btn-small btn-ghost" href="{{ url_for('item_out', item_id=it.id) }}">出庫・破棄</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if has_masters and not expired and not warning %}
+<section class="section">
+  <p class="ok-note">✅ 期限切れ・期限間近のアイテムはありません。</p>
+</section>
+{% endif %}
+
+<section class="section two-col">
+  <div class="card">
+    <h2>🧊 冷蔵庫別の保管数</h2>
+    {% if per_fridge %}
+    <div class="table-wrap" style="border:none; box-shadow:none;">
+      <table>
+        <thead><tr><th>冷蔵庫</th><th>温度帯</th><th>場所</th><th style="text-align:right;">保管中</th></tr></thead>
+        <tbody>
+          {% for f in per_fridge %}
+          <tr>
+            <td><a href="{{ url_for('items', fridge_id=f.id) }}">{{ f.name }}</a></td>
+            <td>{{ f.temp or "—" }}</td>
+            <td>{{ f.location or "—" }}</td>
+            <td style="text-align:right; font-weight:700;">{{ f.stored or 0 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted">冷蔵庫が未登録です。</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2>🕐 最近の操作</h2>
+    {% if recent %}
+    <div class="table-wrap" style="border:none; box-shadow:none;">
+      <table>
+        <tbody>
+          {% set actcls = {'入庫':'in','出庫':'out','破棄':'disc','編集':'edit','取消':'undo','削除':'del','通知':'notify'} %}
+          {% for h in recent %}
+          <tr>
+            <td style="white-space:nowrap;" class="muted">{{ h.ts[5:16] }}</td>
+            <td><span class="act act-{{ actcls.get(h.action, 'edit') }}">{{ h.action }}</span></td>
+            <td>{{ h.item_name or h.detail }}<span class="cell-sub">{{ h.actor }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="card-note"><a href="{{ url_for('history') }}">履歴をすべて見る →</a></p>
+    {% else %}
+    <p class="muted">まだ操作履歴はありません。</p>
+    {% endif %}
+  </div>
+</section>
+
+<p class="muted">📧 メール通知:
+  {% if cfg.notify_enabled %}有効（毎日 {{ cfg.notify_time }} に期限チェック）
+  {% else %}無効 — <a href="{{ url_for('settings') }}">設定</a>から有効化できます{% endif %}
+</p>
+
+{% endblock %}

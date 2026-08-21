@@ -1,0 +1,10 @@
+# 実データ（データベース・設定・バックアップ）は絶対にコミットしない
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# macOS
+.DS_Store

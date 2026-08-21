@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}設定 — 研究室冷蔵庫管理{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>設定</h1>
+</div>
+
+<div class="two-col">
+  <div>
+    <form method="post" action="{{ url_for('settings') }}">
+      <div class="card section">
+        <h2>⏱️ 期限の基本設定</h2>
+        <div class="form-grid">
+          <div>
+            <label for="default_storage_days">標準の保管日数</label>
+            <input type="number" id="default_storage_days" name="default_storage_days"
+                   value="{{ cfg.default_storage_days }}" min="1" max="3650">
+            <div class="field-note">入庫時に期限を空欄にした場合、この日数が使われます。</div>
+          </div>
+          <div>
+            <label for="warn_days">「期限間近」とみなす日数</label>
+            <input type="number" id="warn_days" name="warn_days"
+                   value="{{ cfg.warn_days }}" min="0" max="60">
+            <div class="field-note">期限の何日前から黄色の警告を出すか。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <h2>📧 メール通知（オプション）</h2>
+        <label class="check-line" style="margin-bottom: 14px;">
+          <input type="checkbox" name="notify_enabled" value="1" {% if cfg.notify_enabled %}checked{% endif %}>
+          <span>期限切れ・期限間近のアイテムを毎日メールで自動通知する</span>
+        </label>
+        <div class="form-grid">
+          <div>
+            <label for="notify_time">通知時刻</label>
+            <input type="time" id="notify_time" name="notify_time" value="{{ cfg.notify_time }}">
+            <div class="field-note">PCが起動していれば毎日この時刻に送信。停止していた場合は起動後に送信されます。</div>
+          </div>
+          <div>
+            <label for="admin_email">管理者メールアドレス</label>
+            <input type="email" id="admin_email" name="admin_email" value="{{ cfg.admin_email }}"
+                   placeholder="まとめ通知の宛先">
+            <div class="field-note">全員分のまとめ通知が届きます（空欄なら送信しません）。</div>
+          </div>
+        </div>
+        <hr class="sep">
+        <h2 style="font-size:14px;">送信サーバー（SMTP）</h2>
+        <div class="form-grid">
+          <div>
+            <label for="smtp_host">SMTPサーバー</label>
+            <input type="text" id="smtp_host" name="smtp_host" value="{{ cfg.smtp_host }}"
+                   placeholder="例: smtp.gmail.com">
+          </div>
+          <div>
+            <label for="smtp_port">ポート</label>
+            <input type="number" id="smtp_port" name="smtp_port" value="{{ cfg.smtp_port }}">
+          </div>
+          <div>
+            <label for="smtp_security">暗号化</label>
+            <select id="smtp_security" name="smtp_security">
+              <option value="starttls" {% if cfg.smtp_security == 'starttls' %}selected{% endif %}>STARTTLS（通常はこちら・ポート587）</option>
+              <option value="ssl" {% if cfg.smtp_security == 'ssl' %}selected{% endif %}>SSL（ポート465）</option>
+              <option value="none" {% if cfg.smtp_security == 'none' %}selected{% endif %}>なし（学内サーバー等）</option>
+            </select>
+          </div>
+          <div>
+            <label for="smtp_user">ユーザー名</label>
+            <input type="text" id="smtp_user" name="smtp_user" value="{{ cfg.smtp_user }}"
+                   placeholder="例: lab.fridge@gmail.com">
+          </div>
+          <div>
+            <label for="smtp_password">パスワード</label>
+            <input type="password" id="smtp_password" name="smtp_password" autocomplete="new-password"
+                   placeholder="{{ '設定済み（変更する場合のみ入力）' if has_password else 'Gmailの場合はアプリパスワード' }}">
+            {% if has_password %}
+            <label class="check-line" style="margin-top:6px;">
+              <input type="checkbox" name="clear_password" value="1"><span>保存済みのパスワードを削除する</span>
+            </label>
+            {% endif %}
+          </div>
+          <div>
+            <label for="smtp_from">差出人アドレス</label>
+            <input type="email" id="smtp_from" name="smtp_from" value="{{ cfg.smtp_from }}"
+                   placeholder="空欄ならユーザー名を使用">
+          </div>
+        </div>
+        <p class="card-note">Gmailを使う場合は、通常のパスワードではなく「アプリパスワード」が必要です（README参照）。大学のメールサーバーを使う場合は情報基盤センターにSMTP設定を確認してください。</p>
+      </div>
+
+      <div class="form-actions" style="margin-top: 0; margin-bottom: 24px;">
+        <button type="submit" class="btn" style="min-width: 180px;">設定を保存する</button>
+      </div>
+    </form>
+  </div>
+
+  <div>
+    <div class="card section">
+      <h2>🧪 動作テスト</h2>
+      <form method="post" action="{{ url_for('settings_test_mail') }}" class="inline-form" style="margin-bottom: 14px;">
+        <div class="field">
+          <label for="test_to">テストメールの宛先</label>
+          <input type="email" id="test_to" name="to" placeholder="{{ cfg.admin_email or 'you@example.com' }}">
+        </div>
+        <button type="submit" class="btn btn-small btn-ghost">テスト送信</button>
+      </form>
+      <form method="post" action="{{ url_for('settings_run_notify') }}">
+        <button type="submit" class="btn btn-small btn-ghost">通知チェックを今すぐ実行</button>
+        <div class="field-note" style="margin-top:6px;">期限切れ・期限間近を今すぐ判定し、通知メールを送信します（設定の保存後に実行してください）。</div>
+      </form>
+    </div>
+
+    <div class="card section">
+      <h2>💾 データ管理</h2>
+      <p class="muted" style="margin-top:0;">
+        データベース: <code>{{ db_path }}</code>（{{ db_size_kb }} KB）<br>
+        バックアップは <code>data/backups/</code> に作成されます。dataフォルダごとコピーすれば完全な控えになります。
+      </p>
+      <form method="post" action="{{ url_for('backup') }}">
+        <button type="submit" class="btn btn-small btn-ghost">今すぐバックアップを作成</button>
+      </form>
+    </div>
+
+    <div class="card section">
+      <h2>📨 メール送信ログ（直近20件）</h2>
+      {% if notify_rows %}
+      <div class="table-wrap" style="border:none; box-shadow:none;">
+        <table>
+          <thead><tr><th>日時</th><th>宛先</th><th>結果</th></tr></thead>
+          <tbody>
+            {% for n in notify_rows %}
+            <tr>
+              <td style="white-space:nowrap;" class="muted">{{ n.ts }}</td>
+              <td>{{ n.recipient }}</td>
+              <td>
+                {% if n.ok %}<span class="badge badge-ok">成功</span>
+                {% else %}<span class="badge badge-danger">失敗</span><span class="cell-sub">{{ n.error[:120] }}</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="muted">まだ送信履歴はありません。</p>
+      {% endif %}
+    </div>
+
+    <div class="card section">
+      <h2>🌐 アクセス情報</h2>
+      <p class="muted" style="margin:0;">
+        このPCでは <code>http://localhost:{{ cfg.port }}/</code><br>
+        同じネットワークの他のPCからは <code>http://（このPCのIPアドレス）:{{ cfg.port }}/</code> で開けます（README参照）。<br>
+        ポート番号の変更は <code>data/config.json</code> を編集して再起動してください。
+      </p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

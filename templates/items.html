@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}保管品一覧 — 研究室冷蔵庫管理{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>保管品一覧</h1>
+  <span class="sub">{{ count }} 件</span>
+</div>
+
+<form class="filter-bar" method="get" action="{{ url_for('items') }}">
+  <div class="field">
+    <label for="status">状態</label>
+    <select id="status" name="status">
+      <option value="{{ st_stored }}" {% if status == st_stored %}selected{% endif %}>保管中</option>
+      <option value="{{ st_out }}" {% if status == st_out %}selected{% endif %}>出庫済</option>
+      <option value="{{ st_disc }}" {% if status == st_disc %}selected{% endif %}>破棄済</option>
+      <option value="all" {% if status == 'all' %}selected{% endif %}>すべて</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="fridge_id">冷蔵庫</label>
+    <select id="fridge_id" name="fridge_id">
+      <option value="">すべて</option>
+      {% for fr in fridges %}
+      <option value="{{ fr.id }}" {% if sel_fridge == fr.id %}selected{% endif %}>{{ fr.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="owner_id">所有者</label>
+    <select id="owner_id" name="owner_id">
+      <option value="">すべて</option>
+      {% for r in researchers %}
+      <option value="{{ r.id }}" {% if sel_owner == r.id %}selected{% endif %}>{{ r.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field field-grow">
+    <label for="q">検索</label>
+    <input type="text" id="q" name="q" value="{{ q }}" placeholder="品名・メモ・位置で検索">
+  </div>
+  <button type="submit" class="btn">絞り込む</button>
+  <a class="btn btn-ghost" href="{{ url_for('export_items', status=status, fridge_id=sel_fridge or '', owner_id=sel_owner or '', q=q) }}">CSV出力</a>
+</form>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>品名</th><th>数量</th><th>所有者</th><th>冷蔵庫</th><th>位置</th>
+        <th>入庫日</th><th>期限</th><th>状態</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr class="{% if it.exp_state == 'expired' %}row-expired{% elif it.exp_state == 'warn' %}row-warn{% endif %}">
+        <td>
+          <span class="item-name">{{ it.name }}</span>
+          {% if it.detail %}<span class="cell-sub">{{ it.detail }}</span>{% endif %}
+        </td>
+        <td>{{ it.quantity or "—" }}</td>
+        <td>{{ it.owner_name }}</td>
+        <td>{{ it.fridge_name }}{% if it.fridge_temp %}<span class="cell-sub">{{ it.fridge_temp }}</span>{% endif %}</td>
+        <td>{{ it.position or "—" }}</td>
+        <td style="white-space:nowrap;">{{ it.stored_date }}</td>
+        <td style="white-space:nowrap;">{{ it.expiry_date or "—" }}</td>
+        <td>
+          {% if it.status == st_stored %}
+            {% if it.exp_state == 'expired' %}<span class="badge badge-danger">{{ it.exp_label }}</span>
+            {% elif it.exp_state == 'warn' %}<span class="badge badge-warn">{{ it.exp_label }}</span>
+            {% elif it.exp_state == 'none' %}<span class="badge badge-muted">期限なし</span>
+            {% else %}<span class="badge badge-ok">{{ it.exp_label }}</span>{% endif %}
+          {% elif it.status == st_disc %}
+            <span class="badge badge-muted">破棄済</span>
+            <span class="cell-sub">{{ it.out_date }}・{{ it.out_by_name }}</span>
+          {% else %}
+            <span class="badge badge-info">出庫済</span>
+            <span class="cell-sub">{{ it.out_date }}・{{ it.out_by_name }}</span>
+          {% endif %}
+        </td>
+        <td class="cell-actions">
+          {% if it.status == st_stored %}
+          <a class="btn btn-small {% if it.exp_state == 'expired' %}btn-danger{% else %}btn-ghost{% endif %}"
+             href="{{ url_for('item_out', item_id=it.id) }}">出庫・破棄</a>
+          {% endif %}
+          <a class="btn btn-small btn-ghost" href="{{ url_for('item_edit', item_id=it.id) }}">編集</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" class="table-empty">該当するアイテムはありません。<a href="{{ url_for('item_new') }}">入庫登録</a>から追加できます。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

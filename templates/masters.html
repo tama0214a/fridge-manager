@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}マスタ管理 — 研究室冷蔵庫管理{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>マスタ管理</h1>
+  <span class="sub">冷蔵庫と研究者（利用メンバー）を登録・管理します</span>
+</div>
+
+<div class="stack">
+
+  <!-- ============================== 冷蔵庫 ============================== -->
+  <div class="card">
+    <h2>🧊 冷蔵庫</h2>
+    <form method="post" action="{{ url_for('fridge_add') }}" class="inline-form" style="margin-bottom: 16px;">
+      <div class="field">
+        <label for="fr_name">名前<span class="req">*</span></label>
+        <input type="text" id="fr_name" name="name" placeholder="例: 冷蔵庫A" required>
+      </div>
+      <div class="field-narrow">
+        <label for="fr_temp">温度帯</label>
+        <input type="text" id="fr_temp" name="temp" placeholder="4℃ / -20℃ / -80℃">
+      </div>
+      <div class="field">
+        <label for="fr_loc">場所</label>
+        <input type="text" id="fr_loc" name="location" placeholder="例: 実験室1">
+      </div>
+      <button type="submit" class="btn btn-small">追加</button>
+    </form>
+
+    {% if fridges %}
+    <div class="table-wrap" style="border:none; box-shadow:none;">
+      <table class="master-table">
+        <thead><tr><th>名前</th><th>温度帯</th><th>場所</th><th></th></tr></thead>
+        <tbody>
+          {% for fr in fridges %}
+          <tr class="{{ 'row-inactive' if not fr.active }}">
+            <td><input form="fru-{{ fr.id }}" type="text" name="name" value="{{ fr.name }}" required></td>
+            <td><input form="fru-{{ fr.id }}" type="text" name="temp" value="{{ fr.temp }}" style="min-width:80px;"></td>
+            <td><input form="fru-{{ fr.id }}" type="text" name="location" value="{{ fr.location }}"></td>
+            <td class="cell-actions">
+              <button form="fru-{{ fr.id }}" type="submit" class="btn btn-small btn-ghost">更新</button>
+              <button form="frt-{{ fr.id }}" type="submit" class="btn btn-small btn-ghost"
+                      {% if fr.active %}onclick="return confirm('冷蔵庫「{{ fr.name }}」を無効化します。新しい入庫先として選べなくなります（過去の記録は残ります）。')"{% endif %}>
+                {{ '無効化' if fr.active else '有効化' }}
+              </button>
+              <button form="frd-{{ fr.id }}" type="submit" class="btn btn-small btn-danger"
+                      onclick="return confirm('冷蔵庫「{{ fr.name }}」を削除します。よろしいですか？')">削除</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="card-note">「削除」できるのは入出庫記録のない冷蔵庫だけです。記録がある冷蔵庫は「無効化」で選択肢から外してください（過去の記録が守られます）。</p>
+    {% for fr in fridges %}
+    <form id="fru-{{ fr.id }}" method="post" action="{{ url_for('fridge_update', fid=fr.id) }}"></form>
+    <form id="frt-{{ fr.id }}" method="post" action="{{ url_for('fridge_toggle', fid=fr.id) }}"></form>
+    <form id="frd-{{ fr.id }}" method="post" action="{{ url_for('fridge_delete', fid=fr.id) }}"></form>
+    {% endfor %}
+    {% else %}
+    <p class="muted">まだ冷蔵庫が登録されていません。上のフォームから追加してください。</p>
+    {% endif %}
+  </div>
+
+  <!-- ============================== 研究者 ============================== -->
+  <div class="card">
+    <h2>👥 研究者（利用メンバー）</h2>
+    <form method="post" action="{{ url_for('researcher_add') }}" class="inline-form" style="margin-bottom: 16px;">
+      <div class="field">
+        <label for="re_name">氏名<span class="req">*</span></label>
+        <input type="text" id="re_name" name="name" placeholder="例: 山田 太郎" required>
+      </div>
+      <div class="field">
+        <label for="re_email">メールアドレス</label>
+        <input type="email" id="re_email" name="email" placeholder="通知を受け取る場合に入力">
+      </div>
+      <button type="submit" class="btn btn-small">追加</button>
+    </form>
+
+    {% if researchers %}
+    <div class="table-wrap" style="border:none; box-shadow:none;">
+      <table class="master-table">
+        <thead><tr><th>氏名</th><th>メールアドレス</th><th></th></tr></thead>
+        <tbody>
+          {% for r in researchers %}
+          <tr class="{{ 'row-inactive' if not r.active }}">
+            <td><input form="reu-{{ r.id }}" type="text" name="name" value="{{ r.name }}" required></td>
+            <td><input form="reu-{{ r.id }}" type="email" name="email" value="{{ r.email }}"></td>
+            <td class="cell-actions">
+              <button form="reu-{{ r.id }}" type="submit" class="btn btn-small btn-ghost">更新</button>
+              <button form="ret-{{ r.id }}" type="submit" class="btn btn-small btn-ghost"
+                      {% if r.active %}onclick="return confirm('研究者「{{ r.name }}」を無効化します。新しい登録で選べなくなります（過去の記録は残ります）。')"{% endif %}>
+                {{ '無効化' if r.active else '有効化' }}
+              </button>
+              <button form="red-{{ r.id }}" type="submit" class="btn btn-small btn-danger"
+                      onclick="return confirm('研究者「{{ r.name }}」を削除します。よろしいですか？')">削除</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% for r in researchers %}
+    <form id="reu-{{ r.id }}" method="post" action="{{ url_for('researcher_update', rid=r.id) }}"></form>
+    <form id="ret-{{ r.id }}" method="post" action="{{ url_for('researcher_toggle', rid=r.id) }}"></form>
+    <form id="red-{{ r.id }}" method="post" action="{{ url_for('researcher_delete', rid=r.id) }}"></form>
+    {% endfor %}
+    <p class="card-note">メールアドレスを登録すると、期限切れ・期限間近の自動通知メールを受け取れます（<a href="{{ url_for('settings') }}">設定</a>で有効化）。</p>
+    {% else %}
+    <p class="muted">まだ研究者が登録されていません。上のフォームから追加してください。</p>
+    {% endif %}
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}出庫・破棄 — 研究室冷蔵庫管理{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>出庫・破棄の登録</h1>
+</div>
+
+<div class="card" style="max-width: 760px;">
+  <dl class="item-summary">
+    <div><dt>品名</dt><dd>{{ item.name }}{% if item.quantity %}（{{ item.quantity }}）{% endif %}</dd></div>
+    <div><dt>所有者</dt><dd>{{ item.owner_name }}</dd></div>
+    <div><dt>冷蔵庫</dt><dd>{{ item.fridge_name }}{% if item.position %} / {{ item.position }}{% endif %}</dd></div>
+    <div><dt>入庫日</dt><dd>{{ item.stored_date }}</dd></div>
+    <div><dt>保管期限</dt><dd>{{ item.expiry_date or "期限なし" }}
+      {% if item.exp_state == 'expired' %}<span class="badge badge-danger">{{ item.exp_label }}</span>
+      {% elif item.exp_state == 'warn' %}<span class="badge badge-warn">{{ item.exp_label }}</span>{% endif %}</dd></div>
+  </dl>
+
+  <form method="post" action="{{ url_for('item_out', item_id=item.id) }}">
+    <div class="form-grid">
+      <div class="full">
+        <label>種別<span class="req">*</span></label>
+        <div class="radio-cards">
+          <label class="radio-card">
+            <input type="radio" name="out_type" value="破棄" required>
+            🗑️ 破棄
+            <span class="radio-sub">不要になったので廃棄した</span>
+          </label>
+          <label class="radio-card">
+            <input type="radio" name="out_type" value="使用" required>
+            📤 使用のため取り出し
+            <span class="radio-sub">使い切り・持ち出し</span>
+          </label>
+          <label class="radio-card">
+            <input type="radio" name="out_type" value="その他" required>
+            ✏️ その他
+            <span class="radio-sub">理由をメモに記入</span>
+          </label>
+        </div>
+      </div>
+      <div>
+        <label for="out_by_id">実施者（あなた）<span class="req">*</span></label>
+        <select id="out_by_id" name="out_by_id" required>
+          <option value="">選択してください</option>
+          {% for r in researchers %}
+          <option value="{{ r.id }}" {% if r.id == item.owner_id %}selected{% endif %}>{{ r.name }}</option>
+          {% endfor %}
+        </select>
+        <div class="field-note">所有者本人でなくても登録できます（例: 管理担当者が破棄）。</div>
+      </div>
+      <div>
+        <label for="out_date">実施日<span class="req">*</span></label>
+        <input type="date" id="out_date" name="out_date" value="{{ today }}" required>
+      </div>
+      <div class="full">
+        <label for="out_note">メモ</label>
+        <input type="text" id="out_note" name="out_note" placeholder="例: 期限切れのため廃棄 / 実験Aで使用">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn" style="min-width: 160px;">登録する</button>
+      <a class="btn btn-ghost" href="{{ url_for('items') }}">キャンセル</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

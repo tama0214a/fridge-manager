@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}履歴 — 研究室冷蔵庫管理{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>操作履歴</h1>
+  <span class="sub">いつ・誰が・何をしたかの記録（最新500件を表示）</span>
+</div>
+
+<form class="filter-bar" method="get" action="{{ url_for('history') }}">
+  <div class="field">
+    <label for="action">操作の種類</label>
+    <select id="action" name="action">
+      <option value="">すべて</option>
+      {% for a in actions %}
+      <option value="{{ a }}" {% if sel_action == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field field-grow">
+    <label for="q">検索</label>
+    <input type="text" id="q" name="q" value="{{ q }}" placeholder="品名・実施者・内容で検索">
+  </div>
+  <button type="submit" class="btn">絞り込む</button>
+  <a class="btn btn-ghost" href="{{ url_for('export_history') }}">CSV出力（全件）</a>
+</form>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>日時</th><th>操作</th><th>品名</th><th>実施者</th><th>内容</th></tr>
+    </thead>
+    <tbody>
+      {% set actcls = {'入庫':'in','出庫':'out','破棄':'disc','編集':'edit','取消':'undo','削除':'del','通知':'notify'} %}
+      {% for h in rows %}
+      <tr>
+        <td style="white-space:nowrap;">{{ h.ts }}</td>
+        <td><span class="act act-{{ actcls.get(h.action, 'edit') }}">{{ h.action }}</span></td>
+        <td>{{ h.item_name or "—" }}</td>
+        <td>{{ h.actor or "—" }}</td>
+        <td class="muted">{{ h.detail }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="table-empty">履歴はまだありません。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

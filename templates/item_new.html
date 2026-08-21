@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}入庫登録 — 研究室冷蔵庫管理{% endblock %}
+{% block content %}
+{% set f = form or {} %}
+
+<div class="page-head">
+  <h1>＋ 入庫登録</h1>
+  <span class="sub">冷蔵庫に入れたものを記録します（<span style="color:var(--danger);">*</span> は必須）</span>
+</div>
+
+<div class="card" style="max-width: 860px;">
+  <form method="post" action="{{ url_for('item_new') }}">
+    <div class="form-grid">
+      <div class="full">
+        <label for="name">品名<span class="req">*</span></label>
+        <input type="text" id="name" name="name" value="{{ f.get('name', '') }}"
+               placeholder="例: 抗体サンプル（anti-cTnI）" required autofocus>
+      </div>
+      <div>
+        <label for="quantity">数量</label>
+        <input type="text" id="quantity" name="quantity" value="{{ f.get('quantity', '') }}"
+               placeholder="例: 10本 / 1箱">
+      </div>
+      <div>
+        <label for="position">冷蔵庫内の位置</label>
+        <select id="position" name="position">
+          <option value="">未指定</option>
+          {% for p in positions %}
+          <option value="{{ p }}" {% if f.get('position') == p %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="owner_id">所有者（入れた人）<span class="req">*</span></label>
+        <select id="owner_id" name="owner_id" required>
+          <option value="">選択してください</option>
+          {% for r in researchers %}
+          <option value="{{ r.id }}" {% if f.get('owner_id')|string == r.id|string %}selected{% endif %}>{{ r.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="fridge_id">冷蔵庫<span class="req">*</span></label>
+        <select id="fridge_id" name="fridge_id" required>
+          <option value="">選択してください</option>
+          {% for fr in fridges %}
+          <option value="{{ fr.id }}" {% if f.get('fridge_id')|string == fr.id|string %}selected{% endif %}>{{ fr.name }}{% if fr.temp %}（{{ fr.temp }}）{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="stored_date">入庫日<span class="req">*</span></label>
+        <input type="date" id="stored_date" name="stored_date" value="{{ f.get('stored_date', today) }}" required>
+      </div>
+      <div>
+        <label for="expiry_date">保管期限</label>
+        <input type="date" id="expiry_date" name="expiry_date" value="{{ f.get('expiry_date', default_expiry) }}">
+        <div class="chips">
+          <button type="button" class="chip" onclick="addPeriod(7, 0)">+1週間</button>
+          <button type="button" class="chip" onclick="addPeriod(14, 0)">+2週間</button>
+          <button type="button" class="chip" onclick="addPeriod(0, 1)">+1ヶ月</button>
+          <button type="button" class="chip" onclick="addPeriod(0, 3)">+3ヶ月</button>
+          <button type="button" class="chip" onclick="addPeriod(0, 6)">+半年</button>
+          <button type="button" class="chip" onclick="addPeriod(0, 12)">+1年</button>
+        </div>
+        <label class="check-line" style="margin-top:8px;">
+          <input type="checkbox" id="no_expiry" name="no_expiry" value="1"
+                 onchange="toggleExpiry()" {% if f.get('no_expiry') == '1' %}checked{% endif %}>
+          <span>期限なし（長期保存）</span>
+        </label>
+        <div class="field-note">空欄の場合は入庫日から {{ cfg.default_storage_days }} 日後が自動設定されます。</div>
+      </div>
+      <div class="full">
+        <label for="detail">メモ</label>
+        <textarea id="detail" name="detail" placeholder="例: ロット番号、実験名、取り扱い注意点など">{{ f.get('detail', '') }}</textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn" style="min-width: 180px;">入庫登録する</button>
+      <a class="btn btn-ghost" href="{{ url_for('items') }}">キャンセル</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='item_form.js') }}"></script>
+{% endblock %}
