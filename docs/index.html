@@ -156,64 +156,48 @@
   <header>
     <div class="eyebrow">Setup Guide</div>
     <h1>🧊 研究室冷蔵庫管理システム<br>導入ガイド</h1>
-    <p class="lede">共用冷蔵庫の「いつ・誰が・何を・どこに入れ、いつ破棄したか」を記録するアプリを、研究室のWindows PCにインストールする手順です。</p>
+    <p class="lede">共用冷蔵庫の「いつ・誰が・何を・どこに入れ、いつ破棄したか」を記録するアプリです。下のボタンからブラウザでそのまま使えます。インストールは不要です。</p>
     <div class="head-meta">
-      <span class="tag">Windows 10 / 11</span>
-      <span class="tag">Mac対応</span>
-      <span class="tag">所要 約10分</span>
-      <span class="tag">外部サーバー不使用</span>
+      <span class="tag">インストール不要</span>
+      <span class="tag">PC・スマホ対応</span>
+      <span class="tag">データは端末内のみ</span>
+      <span class="tag">無料</span>
     </div>
     <div class="dl-row">
-      <a class="btn-dl" href="https://github.com/tama0214a/fridge-manager/releases/latest/download/fridge-manager.zip">⬇️ fridge-manager.zip をダウンロード</a>
+      <a class="btn-dl" href="./app.html">▶️ アプリを開く</a>
       <a class="btn-ghost" href="https://github.com/tama0214a/fridge-manager">ソースコード（GitHub）</a>
     </div>
   </header>
 
   <section>
-    <h2>インストール（Windows）</h2>
-    <p class="h2-sub">研究室の共用PC 1台にインストールすれば、他のメンバーはブラウザで開くだけで使えます。</p>
+    <h2>はじめ方</h2>
+    <p class="h2-sub">3ステップで使い始められます。研究室の共用PCのブラウザで開くのがおすすめです。</p>
 
     <div class="step">
       <div class="step-num">1</div>
       <div class="step-body">
-        <h3>Pythonをインストール<span class="step-once">初回のみ</span></h3>
-        <p><a href="https://www.python.org/downloads/">python.org/downloads</a> から最新版（3.10以上）を入手し、インストーラー最初の画面で<strong>「Add python.exe to PATH」に必ずチェック</strong>してから Install Now を押します。</p>
+        <h3>アプリを開く</h3>
+        <p>上の「▶️ アプリを開く」を押します。よく使うPCではブックマーク（お気に入り）に登録しておいてください。</p>
       </div>
     </div>
 
     <div class="step">
       <div class="step-num">2</div>
       <div class="step-body">
-        <h3>アプリを配置</h3>
-        <p>上のボタンからダウンロードしたzipを展開し、フォルダごと <code>C:\fridge-manager</code> にコピーします。OneDrive・Dropboxの同期フォルダ内は避けてください（データベースが同期競合を起こすことがあります）。</p>
+        <h3>マスタを登録<span class="step-once">初回のみ</span></h3>
+        <p><strong>マスタ管理</strong>で、冷蔵庫（名前・温度帯・場所）と研究者（利用メンバーの氏名）を登録します。まず試したいだけなら、ダッシュボードの「サンプルデータを入れて試す」ボタンでも動きが分かります。</p>
       </div>
     </div>
 
     <div class="step">
       <div class="step-num">3</div>
       <div class="step-body">
-        <h3>セットアップを実行<span class="step-once">初回のみ</span></h3>
-        <p><code>setup.bat</code> をダブルクリック。「Setup complete.」と出たら完了です。</p>
+        <h3>使い始める</h3>
+        <p>「＋ 入庫登録」から記録開始。期限切れ・期限間近はダッシュボードに赤・黄で表示されます。</p>
       </div>
     </div>
 
-    <div class="step">
-      <div class="step-num">4</div>
-      <div class="step-body">
-        <h3>起動</h3>
-        <p><code>start.bat</code> をダブルクリック。黒いウィンドウが開き、ブラウザで管理画面（<code>http://localhost:8341/</code>）が自動的に開きます。黒いウィンドウは<strong>閉じずに最小化</strong>してください。</p>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="step-num">5</div>
-      <div class="step-body">
-        <h3>最初の設定</h3>
-        <p>画面上部の<strong>マスタ管理</strong>で、冷蔵庫（名前・温度帯・場所）と研究者（氏名・メールアドレス）を登録します。これで全員が「＋ 入庫登録」から使い始められます。</p>
-      </div>
-    </div>
-
-    <div class="note">Macの場合は、展開したフォルダの <code>start.command</code> をダブルクリックするだけです（初回は自動セットアップ）。別のMacで「開発元が未確認」と出たら右クリック→「開く」で起動できます。</div>
+    <div class="callout"><strong>データの保存場所に注意。</strong> 記録は「開いたブラウザの中」にだけ保存されます（サーバーには送信されません）。そのため<strong>研究室で共用するときは、みんなが同じPCの同じブラウザで開く</strong>運用にしてください。別のPCで開くと別のデータになります。ブラウザの閲覧データを消去すると記録も消えるので、設定ページの「バックアップを保存（JSON）」を定期的に使ってください。</div>
   </section>
 
   <section>
@@ -232,66 +216,40 @@
   </section>
 
   <section>
-    <h2>メール通知を有効にする</h2>
-    <p class="h2-sub">オプション。毎日決まった時刻に、期限切れ・期限間近の所有者と管理者へ自動メールを送ります。</p>
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-body"><p><strong>設定</strong>ページで「毎日メールで自動通知する」にチェックし、通知時刻と管理者アドレスを入力します。</p></div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-body">
-        <p>SMTP情報を入力して保存します。Gmail（研究室共用アカウント推奨）の場合：サーバー <code>smtp.gmail.com</code>、ポート <code>587</code>、暗号化 STARTTLS。</p>
-        <div class="callout"><strong>Gmailは「アプリパスワード」が必要です。</strong> Googleアカウント → セキュリティ → 2段階認証を有効化 → アプリパスワードで16桁を発行し、それをパスワード欄に入力します。大学のメールサーバーを使う場合は情報基盤センターにSMTP設定を確認してください。</div>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-body"><p>「テスト送信」で受信を確認し、「通知チェックを今すぐ実行」で本番の通知内容を確かめます。</p></div>
-    </div>
-    <div class="note">通知はPCが起動している間だけ動きます。電源設定でスリープを「なし」にし、下の自動起動も設定しておくのがおすすめです。</div>
+    <h2>メール通知が必要になったら（インストール版）</h2>
+    <p class="h2-sub">ブラウザ版はサーバーを使わないため、メールの自動送信はできません。期限アラートは画面の色分け表示で確認します。</p>
+    <p>「期限切れを毎朝メールで知らせてほしい」「複数のPCから同じデータを見たい」という段階になったら、研究室PCに常駐させる<strong>インストール版</strong>（同じ見た目・同じ操作）に切り替えられます。ブラウザ版のデータはJSONバックアップで引き継げます。手順は <a href="https://github.com/tama0214a/fridge-manager">GitHubのREADME</a> にあります（Windowsは setup.bat → start.bat、Macは start.command）。</p>
   </section>
 
   <section>
-    <h2>あわせて設定しておくと便利</h2>
-    <p class="h2-sub">どちらも数分で終わります。</p>
+    <h2>あわせてやっておくと安心</h2>
+    <p class="h2-sub">どれも1分で終わります。</p>
     <div class="table-scroll">
       <table>
-        <tr><th>設定</th><th>手順</th></tr>
-        <tr>
-          <td>PC起動時に自動起動</td>
-          <td><code>Win + R</code> → <code>shell:startup</code> でスタートアップフォルダを開き、<code>start_hidden.vbs</code> のショートカットを入れる。以後はサインインと同時に画面なしで起動（ブラウザのお気に入りに <code>http://localhost:8341/</code> を登録）。停止は <code>stop.bat</code></td>
-        </tr>
-        <tr>
-          <td>他のPC・スマホから利用</td>
-          <td>管理PCで <code>ipconfig</code> を実行してIPv4アドレスを確認し、同じ研究室ネットワークの端末から <code>http://（そのIP）:8341/</code> を開く。ファイアウォールの確認が出たら「プライベートネットワーク」で許可。<strong>メンバー側のインストールは不要です</strong></td>
-        </tr>
-        <tr>
-          <td>バックアップ</td>
-          <td>設定ページの「今すぐバックアップを作成」。<code>data</code> フォルダごとUSBメモリ等へコピーすれば完全な控えに</td>
-        </tr>
+        <tr><th>おすすめ</th><th>内容</th></tr>
+        <tr><td>ブックマーク登録</td><td>共用PCのブラウザでこのアプリをお気に入り登録し、全員が同じ入口から開けるようにする</td></tr>
+        <tr><td>定期バックアップ</td><td>設定ページ →「バックアップを保存（JSON）」。月1回程度、共有フォルダ等に保存しておくと、PC故障やブラウザのデータ消去でも復元できる</td></tr>
+        <tr><td>CSV出力</td><td>保管品一覧・履歴はCSVでダウンロードでき、Excelで開けます（監査・棚卸しに）</td></tr>
       </table>
     </div>
-    <div class="note">ログイン機能はありません。研究室内ネットワークだけで使い、外部には公開しないでください。</div>
   </section>
 
   <section>
-    <h2>うまくいかないとき</h2>
-    <p class="h2-sub">詳しくは同梱の README.md にも記載しています。</p>
+    <h2>よくある質問</h2>
     <div class="table-scroll">
       <table>
-        <tr><th>症状</th><th>対処</th></tr>
-        <tr><td>Python not found</td><td>手順1をやり直す（PATHチェックを忘れずに）</td></tr>
-        <tr><td>ポート使用中エラー</td><td><code>data\config.json</code> の <code>"port": 8341</code> を <code>8342</code> などに変えて再起動</td></tr>
-        <tr><td>メールが送れない</td><td>設定ページの「テスト送信」のエラー表示と「メール送信ログ」を確認。Gmailはアプリパスワード必須</td></tr>
-        <tr><td>他のPCから見えない</td><td>ファイアウォールでTCPポート8341を許可。PCのIPアドレス変更にも注意</td></tr>
+        <tr><th>質問</th><th>回答</th></tr>
+        <tr><td>データはどこに保存される？</td><td>開いているブラウザの保存領域（localStorage）内だけです。外部サーバーには一切送信されません</td></tr>
+        <tr><td>別のPCでも同じデータが見える？</td><td>見えません。共用するときは同じPCの同じブラウザで開くか、JSONバックアップで持ち運んでください。常時共有が必要ならインストール版へ</td></tr>
+        <tr><td>記録が消えた</td><td>ブラウザの閲覧データ消去・シークレットモードが原因のことが多いです。JSONバックアップがあれば設定ページから復元できます</td></tr>
+        <tr><td>スマホでも使える？</td><td>使えます（画面は縦向けに自動調整）。ただしデータはそのスマホ内に保存される点は同じです</td></tr>
       </table>
     </div>
   </section>
 
   <footer>
-    データはすべて管理PC内の <code>data\fridge.db</code>（SQLite）に保存されます。アプリ更新時は <code>data</code> フォルダ以外を新しいファイルで上書きしてください。<br>
-    ソースコード・最新版: <a href="https://github.com/tama0214a/fridge-manager">github.com/tama0214a/fridge-manager</a>
+    本アプリは無料・広告なし・アカウント登録不要です。記録データが外部に送信されることはありません。<br>
+    ソースコード・インストール版: <a href="https://github.com/tama0214a/fridge-manager">github.com/tama0214a/fridge-manager</a>
   </footer>
 </div>
 </body>

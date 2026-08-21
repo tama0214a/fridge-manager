@@ -4,7 +4,7 @@
 # このウィンドウを閉じる（または Ctrl+C）とアプリが停止します。
 cd "$(dirname "$0")" || exit 1
 
-# venv は iCloud 同期を避けて機体ローカルに置く
+# venv はクラウド同期フォルダを避けて、この機体のローカルに置く
 VENV="$HOME/.venvs/fridge-manager"
 
 if [ ! -x "$VENV/bin/python" ]; then

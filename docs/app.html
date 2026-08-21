@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>研究室冷蔵庫管理</title>
+<meta name="description" content="研究室の共用冷蔵庫の在庫・保管期限・破棄を記録するアプリ（ブラウザ版）">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🧊%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #eef2f7; --surface: #ffffff; --surface-2: #f8fafc;
+  --border: #e2e8f0; --border-strong: #cbd5e1;
+  --text: #1e293b; --text-sub: #64748b; --text-faint: #94a3b8;
+  --brand: #0e7490; --brand-strong: #155e75; --brand-soft: #ecfeff;
+  --accent: #2563eb; --accent-soft: #eff6ff;
+  --danger: #dc2626; --danger-soft: #fef2f2; --danger-border: #fecaca;
+  --warn: #d97706; --warn-soft: #fffbeb; --warn-border: #fde68a;
+  --ok: #059669; --ok-soft: #ecfdf5;
+  --radius: 12px; --radius-sm: 8px;
+  --shadow-sm: 0 1px 2px rgba(15,23,42,.08);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  font-size: 15px; line-height: 1.65; color: var(--text); background: var(--bg);
+}
+.topbar { background: linear-gradient(135deg, #0c4a6e 0%, #0e7490 100%); color: #fff; position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 3px rgba(15,23,42,.15); }
+.topbar-inner { max-width: 1180px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.brand { font-size: 18px; font-weight: 700; padding: 14px 0; white-space: nowrap; }
+.brand small { font-size: 11px; font-weight: 600; opacity: .75; margin-left: 6px; }
+.topbar nav { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+.topbar nav a { color: rgba(255,255,255,.82); text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+.topbar nav a:hover { background: rgba(255,255,255,.12); color: #fff; }
+.topbar nav a.active { background: rgba(255,255,255,.2); color: #fff; }
+.topbar nav a.nav-cta { background: #fff; color: var(--brand-strong); }
+.topbar nav a.nav-cta:hover { background: #e0f2fe; }
+.container { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }
+.page-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 0 0 18px; }
+.page-head h1 { font-size: 22px; font-weight: 700; margin: 0; }
+.page-head .sub { color: var(--text-sub); font-size: 13px; }
+.section { margin-bottom: 28px; }
+.section h2 { font-size: 16px; font-weight: 700; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 20px 22px; }
+.card h2 { font-size: 16px; margin: 0 0 14px; }
+.card .card-note { color: var(--text-sub); font-size: 13px; margin-top: 10px; }
+.setup-card { border-left: 4px solid var(--brand); background: var(--brand-soft); margin-bottom: 22px; }
+.stack { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 26px; }
+@media (max-width: 860px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 16px 18px; border-top: 3px solid var(--brand); }
+.stat-num { font-size: 32px; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.stat-label { color: var(--text-sub); font-size: 13px; font-weight: 600; }
+.stat-danger { border-top-color: var(--danger); } .stat-danger .stat-num { color: var(--danger); }
+.stat-warn { border-top-color: var(--warn); } .stat-warn .stat-num { color: var(--warn); }
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow-x: auto; }
+.table-plain { border: none; box-shadow: none; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th { text-align: left; font-size: 12.5px; font-weight: 700; color: var(--text-sub); background: var(--surface-2); padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: #f8fafc; }
+tr.row-expired { background: var(--danger-soft); } tr.row-expired:hover { background: #fee8e8; }
+tr.row-warn { background: var(--warn-soft); } tr.row-warn:hover { background: #fdf3d3; }
+tr.row-inactive { color: var(--text-faint); background: var(--surface-2); }
+td .cell-sub { display: block; font-size: 12px; color: var(--text-sub); margin-top: 1px; }
+td.cell-actions { white-space: nowrap; text-align: right; }
+td input[type="text"], td input[type="email"] { min-width: 110px; }
+.master-table td:first-child input { min-width: 240px; }
+.master-table td:first-child { width: 36%; }
+.item-name { font-weight: 600; }
+.table-empty { padding: 36px 20px; text-align: center; color: var(--text-faint); }
+.badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; line-height: 1.7; }
+.badge-danger { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger-border); }
+.badge-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border); }
+.badge-ok { background: var(--ok-soft); color: var(--ok); border: 1px solid #a7f3d0; }
+.badge-muted { background: var(--surface-2); color: var(--text-sub); border: 1px solid var(--border); }
+.badge-info { background: var(--accent-soft); color: var(--accent); border: 1px solid #bfdbfe; }
+.act { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 6px; }
+.act-in { background: var(--ok-soft); color: var(--ok); }
+.act-out { background: var(--accent-soft); color: var(--accent); }
+.act-disc { background: var(--danger-soft); color: var(--danger); }
+.act-edit { background: var(--surface-2); color: var(--text-sub); }
+.act-undo { background: var(--warn-soft); color: var(--warn); }
+.act-del { background: #fdf2f8; color: #be185d; }
+.btn { display: inline-block; font: inherit; font-size: 14px; font-weight: 700; padding: 9px 18px; border-radius: var(--radius-sm); border: 1px solid transparent; cursor: pointer; text-decoration: none; text-align: center; background: var(--brand); color: #fff; }
+.btn:hover { background: var(--brand-strong); }
+.btn:active { transform: translateY(1px); }
+.btn-danger { background: var(--danger); } .btn-danger:hover { background: #b91c1c; }
+.btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+.btn-ghost:hover { background: var(--surface-2); }
+.btn-small { font-size: 13px; padding: 5px 12px; border-radius: 7px; }
+.btn:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+label { font-size: 13px; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 4px; }
+label .req { color: var(--danger); margin-left: 2px; }
+input[type="text"], input[type="email"], input[type="number"], input[type="date"], select, textarea {
+  font: inherit; width: 100%; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--text);
+}
+input:disabled { background: var(--surface-2); color: var(--text-faint); }
+textarea { resize: vertical; min-height: 70px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+@media (max-width: 720px) { .form-grid { grid-template-columns: 1fr; } }
+.form-grid .full { grid-column: 1 / -1; }
+.form-actions { margin-top: 22px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.field-note { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+.check-line { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); }
+.check-line input { width: auto; }
+.check-line span { font-weight: 600; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.chip { font: inherit; font-size: 12.5px; font-weight: 600; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-sub); cursor: pointer; }
+.chip:hover { background: var(--brand-soft); color: var(--brand-strong); border-color: var(--brand); }
+.chip:disabled { opacity: .45; cursor: default; }
+.filter-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 14px 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+.filter-bar .field { min-width: 150px; flex: 0 1 auto; }
+.filter-bar .field-grow { flex: 1 1 180px; }
+.inline-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.inline-form .field { flex: 1 1 130px; }
+.inline-form .field-narrow { flex: 0 1 130px; }
+.flash { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-weight: 600; font-size: 14px; border: 1px solid; }
+.flash-success { background: var(--ok-soft); color: #065f46; border-color: #a7f3d0; }
+.flash-error { background: var(--danger-soft); color: #991b1b; border-color: var(--danger-border); }
+.muted { color: var(--text-sub); font-size: 13px; }
+.ok-note { background: var(--ok-soft); border: 1px solid #a7f3d0; color: #065f46; border-radius: var(--radius); padding: 14px 18px; font-weight: 600; }
+.item-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 20px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 18px; }
+.item-summary dt { font-size: 12px; font-weight: 700; color: var(--text-faint); }
+.item-summary dd { margin: 0; font-weight: 600; }
+.danger-zone { margin-top: 26px; border: 1px solid var(--danger-border); background: var(--danger-soft); border-radius: var(--radius); padding: 16px 18px; }
+.danger-zone h3 { margin: 0 0 8px; font-size: 14px; color: var(--danger); }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+.radio-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 640px) { .radio-cards { grid-template-columns: 1fr; } }
+.radio-card { position: relative; display: block; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); padding: 12px 14px; cursor: pointer; font-weight: 700; font-size: 14px; text-align: center; background: var(--surface); }
+.radio-card input { position: absolute; opacity: 0; }
+.radio-card:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-strong); }
+.radio-card .radio-sub { display: block; font-size: 12px; font-weight: 500; color: var(--text-sub); }
+dialog { border: none; border-radius: var(--radius); box-shadow: 0 10px 40px rgba(15,23,42,.25); padding: 24px 26px; max-width: 640px; width: calc(100% - 40px); }
+dialog::backdrop { background: rgba(15,23,42,.4); }
+footer.app-foot { text-align: center; color: var(--text-faint); font-size: 12px; padding: 20px 12px 30px; }
+footer.app-foot a { color: var(--text-sub); }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">🧊 研究室冷蔵庫管理<small>ブラウザ版</small></div>
+    <nav id="nav">
+      <a data-view="dash">ダッシュボード</a>
+      <a data-view="items">保管品一覧</a>
+      <a data-view="history">履歴</a>
+      <a data-view="masters">マスタ管理</a>
+      <a data-view="settings">設定</a>
+      <a data-view="form" class="nav-cta" id="navNew">＋ 入庫登録</a>
+    </nav>
+  </div>
+</header>
+<main class="container">
+  <div id="flash"></div>
+  <div id="view"></div>
+</main>
+<footer class="app-foot">
+  データはこのブラウザ内にのみ保存されます(サーバー送信なし) ｜
+  <a href="./" target="_blank" rel="noopener">説明書</a> ｜
+  <a href="https://github.com/tama0214a/fridge-manager" target="_blank" rel="noopener">ソースコード</a>
+</footer>
+
+<dialog id="outDlg"></dialog>
+
+<script>
+"use strict";
+/* すべてのユーザー入力値は esc() でHTMLエスケープしてから innerHTML に挿入する。
+   新しい描画コードを書くときも、動的値は必ず esc() を通すこと(XSS対策)。 */
+
+/* ================= データ層(localStorage) ================= */
+const KEY = "fridge-manager-v1";
+const POSITIONS = ["1段目 左", "1段目 右", "2段目 左", "2段目 右", "3段目 左", "3段目 右"];
+const ST = { STORED: "保管中", OUT: "出庫済", DISC: "破棄済" };
+
+function emptyDb() {
+  return {
+    fridges: [], researchers: [], items: [], history: [],
+    config: { default_storage_days: 30, warn_days: 7 },
+    seq: { fridge: 0, researcher: 0, item: 0, history: 0 },
+  };
+}
+function loadDb() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if (d && Array.isArray(d.items) && d.config && d.seq) return d;
+  } catch (e) { /* 壊れていたら初期化 */ }
+  return emptyDb();
+}
+let db = loadDb();
+function save() { localStorage.setItem(KEY, JSON.stringify(db)); }
+
+/* ================= 共通ヘルパー ================= */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pad = n => String(n).padStart(2, "0");
+const fmtD = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const todayISO = () => fmtD(new Date());
+function nowStr() { const d = new Date(); return fmtD(d) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()); }
+function daysUntil(iso) {
+  const [y, m, dd] = iso.split("-").map(Number);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((new Date(y, m - 1, dd) - t) / 86400000);
+}
+const frName = id => (db.fridges.find(f => f.id === id) || {}).name || "不明";
+const frTemp = id => (db.fridges.find(f => f.id === id) || {}).temp || "";
+const reName = id => (db.researchers.find(r => r.id === id) || {}).name || "不明";
+const activeFridges = () => db.fridges.filter(f => f.active).sort((a, b) => a.name.localeCompare(b.name, "ja"));
+const activeResearchers = () => db.researchers.filter(r => r.active).sort((a, b) => a.name.localeCompare(b.name, "ja"));
+
+function expiryState(it) {
+  if (it.status !== ST.STORED) return ["closed", ""];
+  if (!it.expiry_date) return ["none", "期限なし"];
+  const diff = daysUntil(it.expiry_date);
+  if (diff < 0) return ["expired", `${-diff}日超過`];
+  if (diff === 0) return ["warn", "本日期限"];
+  if (diff <= db.config.warn_days) return ["warn", `あと${diff}日`];
+  return ["ok", `あと${diff}日`];
+}
+function stateBadge(it) {
+  const [st, label] = expiryState(it);
+  if (it.status === ST.DISC) return `<span class="badge badge-muted">破棄済</span><span class="cell-sub">${esc(it.out_date)}・${esc(reName(it.out_by_id))}</span>`;
+  if (it.status === ST.OUT) return `<span class="badge badge-info">出庫済</span><span class="cell-sub">${esc(it.out_date)}・${esc(reName(it.out_by_id))}</span>`;
+  if (st === "expired") return `<span class="badge badge-danger">${esc(label)}</span>`;
+  if (st === "warn") return `<span class="badge badge-warn">${esc(label)}</span>`;
+  if (st === "none") return `<span class="badge badge-muted">期限なし</span>`;
+  return `<span class="badge badge-ok">${esc(label)}</span>`;
+}
+function log(action, itemId, itemName, actor, detail) {
+  db.history.push({ id: ++db.seq.history, ts: nowStr(), action, item_id: itemId, item_name: itemName || "", actor: actor || "", detail: detail || "" });
+}
+let flashTimer = null;
+function flash(msg, type = "success") {
+  const box = document.getElementById("flash");
+  box.innerHTML = "";
+  const div = document.createElement("div");
+  div.className = "flash flash-" + (type === "error" ? "error" : "success");
+  div.textContent = msg;
+  box.appendChild(div);
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { box.innerHTML = ""; }, 6000);
+}
+function dlFile(name, text, mime) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: mime }));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function toCSV(rows) {
+  return "﻿" + rows.map(r => r.map(v => {
+    v = String(v ?? "");
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }).join(",")).join("\r\n");
+}
+
+/* ================= 画面切り替え ================= */
+let current = "dash";
+let filters = { status: ST.STORED, fridge: "", owner: "", q: "" };
+let histFilters = { action: "", q: "" };
+let editingId = null;   /* null = 新規入庫 */
+
+function showView(name, opts = {}) {
+  current = name;
+  if (name === "form") editingId = opts.itemId ?? null;
+  document.querySelectorAll("#nav a").forEach(a => {
+    a.classList.toggle("active", a.dataset.view === name && !(name === "form" && editingId !== null));
+  });
+  render();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll("#nav a").forEach(a =>
+  a.addEventListener("click", () => showView(a.dataset.view)));
+
+function render() {
+  const v = document.getElementById("view");
+  if (current === "dash") v.innerHTML = renderDash();
+  else if (current === "items") v.innerHTML = renderItems();
+  else if (current === "form") v.innerHTML = renderForm();
+  else if (current === "history") v.innerHTML = renderHistory();
+  else if (current === "masters") v.innerHTML = renderMasters();
+  else if (current === "settings") v.innerHTML = renderSettings();
+}
+
+/* ================= ダッシュボード ================= */
+function itemRow(it, kind) {
+  const btnCls = kind === "expired" ? "btn-danger" : "btn-ghost";
+  return `<tr class="row-${kind}">
+    <td><span class="item-name">${esc(it.name)}</span>${it.quantity ? `<span class="cell-sub">${esc(it.quantity)}</span>` : ""}</td>
+    <td>${esc(reName(it.owner_id))}</td>
+    <td>${esc(frName(it.fridge_id))}${frTemp(it.fridge_id) ? `<span class="cell-sub">${esc(frTemp(it.fridge_id))}</span>` : ""}</td>
+    <td>${esc(it.position) || "—"}</td>
+    <td style="white-space:nowrap;">${esc(it.stored_date)}</td>
+    <td style="white-space:nowrap;">${esc(it.expiry_date)}</td>
+    <td>${stateBadge(it)}</td>
+    <td class="cell-actions"><button class="btn btn-small ${btnCls}" onclick="openOut(${Number(it.id)})">出庫・破棄</button></td>
+  </tr>`;
+}
+function renderDash() {
+  const stored = db.items.filter(i => i.status === ST.STORED);
+  const expired = stored.filter(i => i.expiry_date && daysUntil(i.expiry_date) < 0)
+    .sort((a, b) => a.expiry_date.localeCompare(b.expiry_date));
+  const warning = stored.filter(i => i.expiry_date && daysUntil(i.expiry_date) >= 0 && daysUntil(i.expiry_date) <= db.config.warn_days)
+    .sort((a, b) => a.expiry_date.localeCompare(b.expiry_date));
+  const actives = activeFridges();
+  const hasMasters = actives.length > 0 && activeResearchers().length > 0;
+  const recent = db.history.slice(-8).reverse();
+  const actcls = { "入庫": "in", "出庫": "out", "破棄": "disc", "編集": "edit", "取消": "undo", "削除": "del" };
+
+  let html = "";
+  if (!hasMasters) {
+    html += `<div class="card setup-card">
+      <h2>ようこそ 👋 最初の設定</h2>
+      <p>まず<a href="#" onclick="showView('masters');return false;">マスタ管理</a>で「冷蔵庫」と「研究者(利用メンバー)」を登録してください。登録が済むと入庫登録ができるようになります。</p>
+      <div class="form-actions" style="margin-top:12px;">
+        <button class="btn" onclick="showView('masters')">マスタ管理をひらく</button>
+        <button class="btn btn-ghost" onclick="seedDemo()">サンプルデータを入れて試す</button>
+      </div>
+    </div>`;
+  }
+  html += `<div class="stats">
+    <div class="stat"><div class="stat-num">${stored.length}</div><div class="stat-label">保管中のアイテム</div></div>
+    <div class="stat stat-danger"><div class="stat-num">${expired.length}</div><div class="stat-label">期限切れ</div></div>
+    <div class="stat stat-warn"><div class="stat-num">${warning.length}</div><div class="stat-label">期限間近(${Number(db.config.warn_days)}日以内)</div></div>
+    <div class="stat"><div class="stat-num">${actives.length}</div><div class="stat-label">冷蔵庫</div></div>
+  </div>`;
+
+  const head = `<thead><tr><th>品名</th><th>所有者</th><th>冷蔵庫</th><th>位置</th><th>入庫日</th><th>期限</th><th>状態</th><th></th></tr></thead>`;
+  if (expired.length) {
+    html += `<section class="section"><h2><span class="badge badge-danger">期限切れ</span> 対応が必要なアイテム</h2>
+      <div class="table-wrap"><table>${head}<tbody>${expired.map(i => itemRow(i, "expired")).join("")}</tbody></table></div></section>`;
+  }
+  if (warning.length) {
+    html += `<section class="section"><h2><span class="badge badge-warn">期限間近</span> ${Number(db.config.warn_days)}日以内に期限を迎えるアイテム</h2>
+      <div class="table-wrap"><table>${head}<tbody>${warning.map(i => itemRow(i, "warn")).join("")}</tbody></table></div></section>`;
+  }
+  if (hasMasters && !expired.length && !warning.length) {
+    html += `<section class="section"><p class="ok-note">✅ 期限切れ・期限間近のアイテムはありません。</p></section>`;
+  }
+
+  html += `<section class="section two-col">
+    <div class="card"><h2>🧊 冷蔵庫別の保管数</h2>`;
+  if (actives.length) {
+    html += `<div class="table-wrap table-plain"><table>
+      <thead><tr><th>冷蔵庫</th><th>温度帯</th><th>場所</th><th style="text-align:right;">保管中</th></tr></thead><tbody>`;
+    for (const f of actives) {
+      const n = stored.filter(i => i.fridge_id === f.id).length;
+      html += `<tr><td><a href="#" onclick="gotoFridge(${Number(f.id)});return false;">${esc(f.name)}</a></td>
+        <td>${esc(f.temp) || "—"}</td><td>${esc(f.location) || "—"}</td>
+        <td style="text-align:right;font-weight:700;">${n}</td></tr>`;
+    }
+    html += `</tbody></table></div>`;
+  } else {
+    html += `<p class="muted">冷蔵庫が未登録です。</p>`;
+  }
+  html += `</div><div class="card"><h2>🕐 最近の操作</h2>`;
+  if (recent.length) {
+    html += `<div class="table-wrap table-plain"><table><tbody>`;
+    for (const h of recent) {
+      html += `<tr><td style="white-space:nowrap;" class="muted">${esc(h.ts.slice(5, 16))}</td>
+        <td><span class="act act-${actcls[h.action] || "edit"}">${esc(h.action)}</span></td>
+        <td>${esc(h.item_name || h.detail)}<span class="cell-sub">${esc(h.actor)}</span></td></tr>`;
+    }
+    html += `</tbody></table></div>
+      <p class="card-note"><a href="#" onclick="showView('history');return false;">履歴をすべて見る →</a></p>`;
+  } else {
+    html += `<p class="muted">まだ操作履歴はありません。</p>`;
+  }
+  html += `</div></section>
+  <p class="muted">📧 メール自動通知はインストール版のみの機能です(<a href="./" target="_blank" rel="noopener">説明書</a>参照)。ブラウザ版では、この画面を開いたときの色分け表示が期限アラートになります。</p>`;
+  return html;
+}
+function gotoFridge(id) {
+  filters = { status: ST.STORED, fridge: String(id), owner: "", q: "" };
+  showView("items");
+}
+
+/* ================= 保管品一覧 ================= */
+function filteredItems() {
+  const f = filters;
+  let rows = db.items.slice();
+  if (f.status !== "all") rows = rows.filter(i => i.status === f.status);
+  if (f.fridge) rows = rows.filter(i => i.fridge_id === Number(f.fridge));
+  if (f.owner) rows = rows.filter(i => i.owner_id === Number(f.owner));
+  if (f.q) {
+    const q = f.q.toLowerCase();
+    rows = rows.filter(i => (i.name + i.detail + i.position).toLowerCase().includes(q));
+  }
+  if (f.status === ST.STORED) {
+    rows.sort((a, b) => ((a.expiry_date === null) - (b.expiry_date === null))
+      || String(a.expiry_date).localeCompare(String(b.expiry_date)) || a.id - b.id);
+  } else {
+    rows.sort((a, b) => b.updated_at.localeCompare(a.updated_at) || b.id - a.id);
+  }
+  return rows;
+}
+function renderItems() {
+  const f = filters;
+  const rows = filteredItems();
+  const frOpts = activeFridges().map(x => `<option value="${Number(x.id)}" ${String(x.id) === f.fridge ? "selected" : ""}>${esc(x.name)}</option>`).join("");
+  const reOpts = activeResearchers().map(x => `<option value="${Number(x.id)}" ${String(x.id) === f.owner ? "selected" : ""}>${esc(x.name)}</option>`).join("");
+  const stOpt = (v, lab) => `<option value="${esc(v)}" ${f.status === v ? "selected" : ""}>${esc(lab)}</option>`;
+
+  let html = `<div class="page-head"><h1>保管品一覧</h1><span class="sub">${rows.length} 件</span></div>
+  <div class="filter-bar">
+    <div class="field"><label>状態</label><select id="fl-status">
+      ${stOpt(ST.STORED, "保管中")}${stOpt(ST.OUT, "出庫済")}${stOpt(ST.DISC, "破棄済")}${stOpt("all", "すべて")}
+    </select></div>
+    <div class="field"><label>冷蔵庫</label><select id="fl-fridge"><option value="">すべて</option>${frOpts}</select></div>
+    <div class="field"><label>所有者</label><select id="fl-owner"><option value="">すべて</option>${reOpts}</select></div>
+    <div class="field field-grow"><label>検索</label><input type="text" id="fl-q" value="${esc(f.q)}" placeholder="品名・メモ・位置で検索"></div>
+    <button class="btn" onclick="applyFilters()">絞り込む</button>
+    <button class="btn btn-ghost" onclick="exportItemsCSV()">CSV出力</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>品名</th><th>数量</th><th>所有者</th><th>冷蔵庫</th><th>位置</th><th>入庫日</th><th>期限</th><th>状態</th><th></th></tr></thead><tbody>`;
+  if (!rows.length) {
+    html += `<tr><td colspan="9" class="table-empty">該当するアイテムはありません。<a href="#" onclick="showView('form');return false;">入庫登録</a>から追加できます。</td></tr>`;
+  }
+  for (const it of rows) {
+    const [st] = expiryState(it);
+    const rowCls = st === "expired" ? "row-expired" : st === "warn" ? "row-warn" : "";
+    html += `<tr class="${rowCls}">
+      <td><span class="item-name">${esc(it.name)}</span>${it.detail ? `<span class="cell-sub">${esc(it.detail)}</span>` : ""}</td>
+      <td>${esc(it.quantity) || "—"}</td>
+      <td>${esc(reName(it.owner_id))}</td>
+      <td>${esc(frName(it.fridge_id))}${frTemp(it.fridge_id) ? `<span class="cell-sub">${esc(frTemp(it.fridge_id))}</span>` : ""}</td>
+      <td>${esc(it.position) || "—"}</td>
+      <td style="white-space:nowrap;">${esc(it.stored_date)}</td>
+      <td style="white-space:nowrap;">${esc(it.expiry_date) || "—"}</td>
+      <td>${stateBadge(it)}</td>
+      <td class="cell-actions">
+        ${it.status === ST.STORED ? `<button class="btn btn-small ${st === "expired" ? "btn-danger" : "btn-ghost"}" onclick="openOut(${Number(it.id)})">出庫・破棄</button>` : ""}
+        <button class="btn btn-small btn-ghost" onclick="showView('form',{itemId:${Number(it.id)}})">編集</button>
+      </td></tr>`;
+  }
+  html += `</tbody></table></div>`;
+  return html;
+}
+function applyFilters() {
+  filters = {
+    status: document.getElementById("fl-status").value,
+    fridge: document.getElementById("fl-fridge").value,
+    owner: document.getElementById("fl-owner").value,
+    q: document.getElementById("fl-q").value.trim(),
+  };
+  render();
+}
+function exportItemsCSV() {
+  applyFilters();
+  const rows = filteredItems();
+  const data = [["ID", "品名", "メモ", "数量", "位置", "所有者", "冷蔵庫", "入庫日", "保管期限", "状態", "出庫日", "出庫実施者", "出庫メモ", "登録日時", "更新日時"]];
+  for (const r of rows) {
+    data.push([r.id, r.name, r.detail, r.quantity, r.position, reName(r.owner_id), frName(r.fridge_id),
+      r.stored_date, r.expiry_date || "期限なし", r.status, r.out_date || "", r.out_by_id ? reName(r.out_by_id) : "", r.out_note,
+      r.created_at, r.updated_at]);
+  }
+  dlFile("fridge_items.csv", toCSV(data), "text/csv");
+}
+
+/* ================= 入庫登録・編集フォーム ================= */
+function renderForm() {
+  const isEdit = editingId !== null;
+  const it = isEdit ? db.items.find(i => i.id === editingId) : null;
+  if (isEdit && !it) { flash("アイテムが見つかりません。", "error"); setTimeout(() => showView("items"), 0); return ""; }
+  const res = activeResearchers(), frs = activeFridges();
+  if (!res.length || !frs.length) {
+    flash("先にマスタ管理で「冷蔵庫」と「研究者」を登録してください。", "error");
+    setTimeout(() => showView("masters"), 0);
+    return "";
+  }
+  const defExpiry = (() => { const d = new Date(); d.setDate(d.getDate() + db.config.default_storage_days); return fmtD(d); })();
+  const v = {
+    name: it ? it.name : "", quantity: it ? it.quantity : "", position: it ? it.position : "",
+    owner: it ? it.owner_id : "", fridge: it ? it.fridge_id : "",
+    stored: it ? it.stored_date : todayISO(),
+    expiry: it ? (it.expiry_date || "") : defExpiry,
+    noExp: it ? !it.expiry_date : false, detail: it ? it.detail : "",
+  };
+  const posOpts = POSITIONS.map(p => `<option value="${esc(p)}" ${v.position === p ? "selected" : ""}>${esc(p)}</option>`).join("")
+    + (v.position && !POSITIONS.includes(v.position) ? `<option value="${esc(v.position)}" selected>${esc(v.position)}(旧形式)</option>` : "");
+  const reOpts = sel => res.map(r => `<option value="${Number(r.id)}" ${r.id === sel ? "selected" : ""}>${esc(r.name)}</option>`).join("");
+  const frOpts = frs.map(f => `<option value="${Number(f.id)}" ${f.id === v.fridge ? "selected" : ""}>${esc(f.name)}${f.temp ? `(${esc(f.temp)})` : ""}</option>`).join("");
+
+  let statusBox = "";
+  if (isEdit && it.status !== ST.STORED) {
+    statusBox = `<div class="flash flash-error" style="margin-bottom:18px;">
+      このアイテムは <strong>${esc(it.status)}</strong>(${esc(it.out_date)}・実施者 ${esc(reName(it.out_by_id))})です。
+      誤って登録した場合は下の「保管中に戻す」にチェックを入れて保存してください。</div>`;
+  }
+  return `<div class="page-head"><h1>${isEdit ? "アイテムの編集" : "＋ 入庫登録"}</h1>
+    <span class="sub">${isEdit ? `ID: ${Number(it.id)} ／ 登録 ${esc(it.created_at)}` : `冷蔵庫に入れたものを記録します(<span style="color:var(--danger);">*</span> は必須)`}</span></div>
+  <div class="card" style="max-width:860px;">${statusBox}
+    <div class="form-grid">
+      <div class="full"><label>品名<span class="req">*</span></label>
+        <input type="text" id="f-name" value="${esc(v.name)}" placeholder="例: 抗体サンプル(anti-cTnI)" ${isEdit ? "" : "autofocus"}></div>
+      <div><label>数量</label><input type="text" id="f-qty" value="${esc(v.quantity)}" placeholder="例: 10本 / 1箱"></div>
+      <div><label>冷蔵庫内の位置</label><select id="f-pos"><option value="">未指定</option>${posOpts}</select></div>
+      <div><label>所有者(入れた人)<span class="req">*</span></label>
+        <select id="f-owner"><option value="">選択してください</option>${reOpts(v.owner)}</select></div>
+      <div><label>冷蔵庫<span class="req">*</span></label>
+        <select id="f-fridge"><option value="">選択してください</option>${frOpts}</select></div>
+      <div><label>入庫日<span class="req">*</span></label><input type="date" id="f-stored" value="${esc(v.stored)}"></div>
+      <div><label>保管期限</label><input type="date" id="f-expiry" value="${esc(v.expiry)}" ${v.noExp ? "disabled" : ""}>
+        <div class="chips">
+          <button type="button" class="chip" onclick="addPeriod(7,0)" ${v.noExp ? "disabled" : ""}>+1週間</button>
+          <button type="button" class="chip" onclick="addPeriod(14,0)" ${v.noExp ? "disabled" : ""}>+2週間</button>
+          <button type="button" class="chip" onclick="addPeriod(0,1)" ${v.noExp ? "disabled" : ""}>+1ヶ月</button>
+          <button type="button" class="chip" onclick="addPeriod(0,3)" ${v.noExp ? "disabled" : ""}>+3ヶ月</button>
+          <button type="button" class="chip" onclick="addPeriod(0,6)" ${v.noExp ? "disabled" : ""}>+半年</button>
+          <button type="button" class="chip" onclick="addPeriod(0,12)" ${v.noExp ? "disabled" : ""}>+1年</button>
+        </div>
+        <label class="check-line" style="margin-top:8px;">
+          <input type="checkbox" id="f-noexp" ${v.noExp ? "checked" : ""} onchange="toggleExpiry()"><span>期限なし(長期保存)</span>
+        </label>
+        <div class="field-note">空欄の場合は入庫日から ${Number(db.config.default_storage_days)} 日後が自動設定されます。</div></div>
+      <div class="full"><label>メモ</label><textarea id="f-detail" placeholder="例: ロット番号、実験名、取り扱い注意点など">${esc(v.detail)}</textarea></div>
+      ${isEdit ? `
+      <div><label>操作者(あなた)<span class="req">*</span></label>
+        <select id="f-actor"><option value="">選択してください</option>${reOpts(null)}</select>
+        <div class="field-note">変更履歴に記録されます。</div></div>
+      ${it.status !== ST.STORED ? `
+      <div><label>状態の取り消し</label>
+        <label class="check-line" style="margin-top:6px;"><input type="checkbox" id="f-revert"><span>保管中に戻す(${esc(it.status)}を取り消す)</span></label></div>` : ""}` : ""}
+    </div>
+    <div class="form-actions">
+      <button class="btn" style="min-width:170px;" onclick="${isEdit ? "saveEdit()" : "saveNew()"}">${isEdit ? "保存する" : "入庫登録する"}</button>
+      <button class="btn btn-ghost" onclick="showView('items')">キャンセル</button>
+    </div>
+    ${isEdit ? `<div class="danger-zone"><h3>誤登録の削除</h3>
+      <p class="muted" style="margin:0 0 10px;">入力ミスなどで作成したレコードを削除します。削除の記録は履歴に残りますが、この操作は元に戻せません。</p>
+      <div class="inline-form">
+        <div class="field-narrow" style="flex:0 1 220px;"><label>操作者<span class="req">*</span></label>
+          <select id="f-delactor"><option value="">選択してください</option>${reOpts(null)}</select></div>
+        <button class="btn btn-small btn-danger" onclick="deleteItem()">削除する</button>
+      </div></div>` : ""}
+  </div>`;
+}
+function addPeriod(days, months) {
+  const s = document.getElementById("f-stored").value;
+  if (!s) return;
+  const p = s.split("-").map(Number);
+  const d = new Date(p[0], p[1] - 1, p[2]);
+  if (months) d.setMonth(d.getMonth() + months);
+  if (days) d.setDate(d.getDate() + days);
+  const ne = document.getElementById("f-noexp");
+  if (ne.checked) { ne.checked = false; toggleExpiry(); }
+  document.getElementById("f-expiry").value = fmtD(d);
+}
+function toggleExpiry() {
+  const off = document.getElementById("f-noexp").checked;
+  document.getElementById("f-expiry").disabled = off;
+  document.querySelectorAll(".chip").forEach(c => { c.disabled = off; });
+}
+function readForm() {
+  const name = document.getElementById("f-name").value.trim();
+  const owner = Number(document.getElementById("f-owner").value) || null;
+  const fridge = Number(document.getElementById("f-fridge").value) || null;
+  const stored = document.getElementById("f-stored").value || todayISO();
+  const noExp = document.getElementById("f-noexp").checked;
+  let expiry = noExp ? null : (document.getElementById("f-expiry").value || null);
+  if (!noExp && !expiry) {
+    const p = stored.split("-").map(Number);
+    const d = new Date(p[0], p[1] - 1, p[2]);
+    d.setDate(d.getDate() + db.config.default_storage_days);
+    expiry = fmtD(d);
+  }
+  const errors = [];
+  if (!name) errors.push("品名を入力してください。");
+  if (!owner || !db.researchers.some(r => r.id === owner)) errors.push("所有者を選択してください。");
+  if (!fridge || !db.fridges.some(f => f.id === fridge)) errors.push("冷蔵庫を選択してください。");
+  return {
+    errors, name, owner, fridge, stored, expiry,
+    qty: document.getElementById("f-qty").value.trim(),
+    pos: document.getElementById("f-pos").value,
+    detail: document.getElementById("f-detail").value.trim(),
+  };
+}
+function saveNew() {
+  const f = readForm();
+  if (f.errors.length) { flash(f.errors[0], "error"); return; }
+  const ts = nowStr();
+  const item = {
+    id: ++db.seq.item, name: f.name, detail: f.detail, quantity: f.qty, position: f.pos,
+    owner_id: f.owner, fridge_id: f.fridge, stored_date: f.stored, expiry_date: f.expiry,
+    status: ST.STORED, out_date: null, out_by_id: null, out_note: "",
+    created_at: ts, updated_at: ts,
+  };
+  db.items.push(item);
+  log("入庫", item.id, f.name, reName(f.owner), `${frName(f.fridge)} に入庫(期限: ${f.expiry || "なし"})`);
+  save();
+  flash(`「${f.name}」を入庫登録しました。続けて登録できます。`);
+  showView("form");
+}
+function saveEdit() {
+  const it = db.items.find(i => i.id === editingId);
+  const f = readForm();
+  const actor = Number(document.getElementById("f-actor").value) || null;
+  if (!actor) f.errors.push("操作者(あなた)を選択してください。");
+  if (f.errors.length) { flash(f.errors[0], "error"); return; }
+  const revertEl = document.getElementById("f-revert");
+  const revert = revertEl && revertEl.checked && it.status !== ST.STORED;
+  const labels = { name: "品名", detail: "メモ", quantity: "数量", position: "位置" };
+  const nv = { name: f.name, detail: f.detail, quantity: f.qty, position: f.pos, owner_id: f.owner, fridge_id: f.fridge, stored_date: f.stored, expiry_date: f.expiry };
+  const changes = [];
+  for (const [k, val] of Object.entries(nv)) {
+    if (it[k] !== val) {
+      if (k === "owner_id") changes.push(`所有者: ${reName(it[k])}→${reName(val)}`);
+      else if (k === "fridge_id") changes.push(`冷蔵庫: ${frName(it[k])}→${frName(val)}`);
+      else if (k === "stored_date") changes.push(`入庫日: ${it[k]}→${val}`);
+      else if (k === "expiry_date") changes.push(`保管期限: ${it[k] || "なし"}→${val || "なし"}`);
+      else changes.push(labels[k]);
+    }
+  }
+  if (revert) {
+    it.status = ST.STORED; it.out_date = null; it.out_by_id = null; it.out_note = "";
+    log("取消", it.id, f.name, reName(actor), "出庫・破棄を取り消して保管中に戻した");
+  }
+  Object.assign(it, nv, { updated_at: nowStr() });
+  if (changes.length) log("編集", it.id, f.name, reName(actor), "変更: " + changes.join("、"));
+  save();
+  flash(`「${f.name}」を更新しました。`);
+  showView("items");
+}
+function deleteItem() {
+  const it = db.items.find(i => i.id === editingId);
+  const actor = Number(document.getElementById("f-delactor").value) || null;
+  if (!actor) { flash("削除するには操作者を選択してください。", "error"); return; }
+  if (!confirm(`「${it.name}」を削除します。よろしいですか？`)) return;
+  log("削除", it.id, it.name, reName(actor),
+    `誤登録のため削除(${frName(it.fridge_id)}、入庫 ${it.stored_date}、所有者 ${reName(it.owner_id)})`);
+  db.items = db.items.filter(i => i.id !== it.id);
+  save();
+  flash(`「${it.name}」を削除しました(履歴には記録が残ります)。`);
+  showView("items");
+}
+
+/* ================= 出庫・破棄(ダイアログ) ================= */
+function openOut(id) {
+  const it = db.items.find(i => i.id === id);
+  if (!it || it.status !== ST.STORED) { flash("このアイテムはすでに出庫・破棄済みです。", "error"); return; }
+  const res = activeResearchers();
+  const reOpts = res.map(r => `<option value="${Number(r.id)}" ${r.id === it.owner_id ? "selected" : ""}>${esc(r.name)}</option>`).join("");
+  const [st, label] = expiryState(it);
+  const dlg = document.getElementById("outDlg");
+  dlg.innerHTML = `<h2 style="margin:0 0 14px;font-size:18px;">出庫・破棄の登録</h2>
+    <dl class="item-summary">
+      <div><dt>品名</dt><dd>${esc(it.name)}${it.quantity ? `(${esc(it.quantity)})` : ""}</dd></div>
+      <div><dt>冷蔵庫</dt><dd>${esc(frName(it.fridge_id))}${it.position ? " / " + esc(it.position) : ""}</dd></div>
+      <div><dt>期限</dt><dd>${esc(it.expiry_date) || "期限なし"} ${st === "expired" ? `<span class="badge badge-danger">${esc(label)}</span>` : st === "warn" ? `<span class="badge badge-warn">${esc(label)}</span>` : ""}</dd></div>
+    </dl>
+    <div class="form-grid">
+      <div class="full"><label>種別<span class="req">*</span></label>
+        <div class="radio-cards">
+          <label class="radio-card"><input type="radio" name="o-type" value="破棄">🗑️ 破棄<span class="radio-sub">不要になったので廃棄した</span></label>
+          <label class="radio-card"><input type="radio" name="o-type" value="使用">📤 使用のため取り出し<span class="radio-sub">使い切り・持ち出し</span></label>
+          <label class="radio-card"><input type="radio" name="o-type" value="その他">✏️ その他<span class="radio-sub">理由をメモに記入</span></label>
+        </div></div>
+      <div><label>実施者(あなた)<span class="req">*</span></label>
+        <select id="o-by">${reOpts}</select>
+        <div class="field-note">所有者本人でなくても登録できます。</div></div>
+      <div><label>実施日<span class="req">*</span></label><input type="date" id="o-date" value="${todayISO()}"></div>
+      <div class="full"><label>メモ</label><input type="text" id="o-note" placeholder="例: 期限切れのため廃棄 / 実験Aで使用"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" style="min-width:150px;" onclick="saveOut(${Number(it.id)})">登録する</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('outDlg').close()">キャンセル</button>
+    </div>`;
+  dlg.showModal();
+}
+function saveOut(id) {
+  const it = db.items.find(i => i.id === id);
+  const typeEl = document.querySelector('input[name="o-type"]:checked');
+  const by = Number(document.getElementById("o-by").value) || null;
+  if (!typeEl) { flash("種別を選択してください。", "error"); document.getElementById("outDlg").close(); return; }
+  if (!by) { flash("実施者を選択してください。", "error"); document.getElementById("outDlg").close(); return; }
+  const type = typeEl.value;
+  const note = document.getElementById("o-note").value.trim();
+  it.status = type === "破棄" ? ST.DISC : ST.OUT;
+  it.out_date = document.getElementById("o-date").value || todayISO();
+  it.out_by_id = by;
+  it.out_note = note;
+  it.updated_at = nowStr();
+  const action = type === "破棄" ? "破棄" : "出庫";
+  let detail = { "破棄": "破棄", "使用": "使用のため取り出し", "その他": "その他" }[type];
+  if (note) detail += `(${note})`;
+  log(action, it.id, it.name, reName(by), detail);
+  save();
+  document.getElementById("outDlg").close();
+  flash(`「${it.name}」を${action}登録しました。`);
+  render();
+}
+
+/* ================= 履歴 ================= */
+function renderHistory() {
+  const actions = [...new Set(db.history.map(h => h.action))].sort();
+  let rows = db.history.slice().reverse();
+  if (histFilters.action) rows = rows.filter(h => h.action === histFilters.action);
+  if (histFilters.q) {
+    const q = histFilters.q.toLowerCase();
+    rows = rows.filter(h => (h.item_name + h.actor + h.detail).toLowerCase().includes(q));
+  }
+  const shown = rows.slice(0, 500);
+  const actcls = { "入庫": "in", "出庫": "out", "破棄": "disc", "編集": "edit", "取消": "undo", "削除": "del" };
+  let html = `<div class="page-head"><h1>操作履歴</h1><span class="sub">いつ・誰が・何をしたかの記録(最新500件を表示)</span></div>
+  <div class="filter-bar">
+    <div class="field"><label>操作の種類</label><select id="h-action"><option value="">すべて</option>
+      ${actions.map(a => `<option value="${esc(a)}" ${histFilters.action === a ? "selected" : ""}>${esc(a)}</option>`).join("")}</select></div>
+    <div class="field field-grow"><label>検索</label><input type="text" id="h-q" value="${esc(histFilters.q)}" placeholder="品名・実施者・内容で検索"></div>
+    <button class="btn" onclick="applyHistFilters()">絞り込む</button>
+    <button class="btn btn-ghost" onclick="exportHistoryCSV()">CSV出力(全件)</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>日時</th><th>操作</th><th>品名</th><th>実施者</th><th>内容</th></tr></thead><tbody>`;
+  if (!shown.length) html += `<tr><td colspan="5" class="table-empty">履歴はまだありません。</td></tr>`;
+  for (const h of shown) {
+    html += `<tr><td style="white-space:nowrap;">${esc(h.ts)}</td>
+      <td><span class="act act-${actcls[h.action] || "edit"}">${esc(h.action)}</span></td>
+      <td>${esc(h.item_name) || "—"}</td><td>${esc(h.actor) || "—"}</td>
+      <td class="muted">${esc(h.detail)}</td></tr>`;
+  }
+  html += `</tbody></table></div>`;
+  return html;
+}
+function applyHistFilters() {
+  histFilters = {
+    action: document.getElementById("h-action").value,
+    q: document.getElementById("h-q").value.trim(),
+  };
+  render();
+}
+function exportHistoryCSV() {
+  const data = [["ID", "日時", "操作", "アイテムID", "品名", "実施者", "詳細"]];
+  for (const h of db.history) data.push([h.id, h.ts, h.action, h.item_id || "", h.item_name, h.actor, h.detail]);
+  dlFile("fridge_history.csv", toCSV(data), "text/csv");
+}
+
+/* ================= マスタ管理 ================= */
+function renderMasters() {
+  const frs = db.fridges.slice().sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name, "ja"));
+  const res = db.researchers.slice().sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name, "ja"));
+  let html = `<div class="page-head"><h1>マスタ管理</h1><span class="sub">冷蔵庫と研究者(利用メンバー)を登録・管理します</span></div>
+  <div class="stack">
+  <div class="card"><h2>🧊 冷蔵庫</h2>
+    <div class="inline-form" style="margin-bottom:16px;">
+      <div class="field"><label>名前<span class="req">*</span></label><input type="text" id="m-frname" placeholder="例: 冷蔵庫A"></div>
+      <div class="field-narrow"><label>温度帯</label><input type="text" id="m-frtemp" placeholder="4℃ / -20℃ / -80℃"></div>
+      <div class="field"><label>場所</label><input type="text" id="m-frloc" placeholder="例: 実験室1"></div>
+      <button class="btn btn-small" onclick="addFridge()">追加</button>
+    </div>`;
+  if (frs.length) {
+    html += `<div class="table-wrap table-plain"><table class="master-table">
+      <thead><tr><th>名前</th><th>温度帯</th><th>場所</th><th></th></tr></thead><tbody>`;
+    for (const f of frs) {
+      html += `<tr class="${f.active ? "" : "row-inactive"}">
+        <td><input type="text" id="fr-name-${Number(f.id)}" value="${esc(f.name)}"></td>
+        <td><input type="text" id="fr-temp-${Number(f.id)}" value="${esc(f.temp)}" style="min-width:80px;"></td>
+        <td><input type="text" id="fr-loc-${Number(f.id)}" value="${esc(f.location)}"></td>
+        <td class="cell-actions">
+          <button class="btn btn-small btn-ghost" onclick="updateFridge(${Number(f.id)})">更新</button>
+          <button class="btn btn-small btn-ghost" onclick="toggleFridge(${Number(f.id)})">${f.active ? "無効化" : "有効化"}</button>
+          <button class="btn btn-small btn-danger" onclick="deleteFridge(${Number(f.id)})">削除</button>
+        </td></tr>`;
+    }
+    html += `</tbody></table></div>
+    <p class="card-note">「削除」できるのは入出庫記録のない冷蔵庫だけです。記録がある冷蔵庫は「無効化」で選択肢から外してください(過去の記録が守られます)。</p>`;
+  } else {
+    html += `<p class="muted">まだ冷蔵庫が登録されていません。上のフォームから追加してください。</p>`;
+  }
+  html += `</div><div class="card"><h2>👥 研究者(利用メンバー)</h2>
+    <div class="inline-form" style="margin-bottom:16px;">
+      <div class="field"><label>氏名<span class="req">*</span></label><input type="text" id="m-rename" placeholder="例: 山田 太郎"></div>
+      <div class="field"><label>メールアドレス</label><input type="email" id="m-reemail" placeholder="記録用(通知はインストール版のみ)"></div>
+      <button class="btn btn-small" onclick="addResearcher()">追加</button>
+    </div>`;
+  if (res.length) {
+    html += `<div class="table-wrap table-plain"><table class="master-table">
+      <thead><tr><th>氏名</th><th>メールアドレス</th><th></th></tr></thead><tbody>`;
+    for (const r of res) {
+      html += `<tr class="${r.active ? "" : "row-inactive"}">
+        <td><input type="text" id="re-name-${Number(r.id)}" value="${esc(r.name)}"></td>
+        <td><input type="email" id="re-email-${Number(r.id)}" value="${esc(r.email)}"></td>
+        <td class="cell-actions">
+          <button class="btn btn-small btn-ghost" onclick="updateResearcher(${Number(r.id)})">更新</button>
+          <button class="btn btn-small btn-ghost" onclick="toggleResearcher(${Number(r.id)})">${r.active ? "無効化" : "有効化"}</button>
+          <button class="btn btn-small btn-danger" onclick="deleteResearcher(${Number(r.id)})">削除</button>
+        </td></tr>`;
+    }
+    html += `</tbody></table></div>`;
+  } else {
+    html += `<p class="muted">まだ研究者が登録されていません。上のフォームから追加してください。</p>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+function addFridge() {
+  const name = document.getElementById("m-frname").value.trim();
+  if (!name) { flash("冷蔵庫の名前を入力してください。", "error"); return; }
+  db.fridges.push({
+    id: ++db.seq.fridge, name,
+    temp: document.getElementById("m-frtemp").value.trim(),
+    location: document.getElementById("m-frloc").value.trim(), active: 1,
+  });
+  save(); flash(`冷蔵庫「${name}」を追加しました。`); render();
+}
+function updateFridge(id) {
+  const f = db.fridges.find(x => x.id === id);
+  const name = document.getElementById(`fr-name-${id}`).value.trim();
+  if (!name) { flash("冷蔵庫の名前は空にできません。", "error"); return; }
+  f.name = name;
+  f.temp = document.getElementById(`fr-temp-${id}`).value.trim();
+  f.location = document.getElementById(`fr-loc-${id}`).value.trim();
+  save(); flash(`冷蔵庫「${name}」を更新しました。`); render();
+}
+function toggleFridge(id) {
+  const f = db.fridges.find(x => x.id === id);
+  if (f.active && !confirm(`冷蔵庫「${f.name}」を無効化します。新しい入庫先として選べなくなります(過去の記録は残ります)。`)) return;
+  f.active = f.active ? 0 : 1;
+  save(); flash(`冷蔵庫「${f.name}」を${f.active ? "有効化" : "無効化"}しました。`); render();
+}
+function deleteFridge(id) {
+  const f = db.fridges.find(x => x.id === id);
+  const used = db.items.filter(i => i.fridge_id === id).length;
+  if (used) {
+    flash(`冷蔵庫「${f.name}」には入出庫記録が${used}件あるため削除できません。代わりに「無効化」を使ってください。`, "error");
+    return;
+  }
+  if (!confirm(`冷蔵庫「${f.name}」を削除します。よろしいですか？`)) return;
+  db.fridges = db.fridges.filter(x => x.id !== id);
+  log("削除", null, "", "", `未使用の冷蔵庫「${f.name}」をマスタから削除`);
+  save(); flash(`冷蔵庫「${f.name}」を削除しました。`); render();
+}
+function addResearcher() {
+  const name = document.getElementById("m-rename").value.trim();
+  const email = document.getElementById("m-reemail").value.trim();
+  if (!name) { flash("研究者の氏名を入力してください。", "error"); return; }
+  if (email && !email.includes("@")) { flash("メールアドレスの形式が正しくありません。", "error"); return; }
+  db.researchers.push({ id: ++db.seq.researcher, name, email, active: 1 });
+  save(); flash(`研究者「${name}」を追加しました。`); render();
+}
+function updateResearcher(id) {
+  const r = db.researchers.find(x => x.id === id);
+  const name = document.getElementById(`re-name-${id}`).value.trim();
+  const email = document.getElementById(`re-email-${id}`).value.trim();
+  if (!name) { flash("研究者の氏名は空にできません。", "error"); return; }
+  if (email && !email.includes("@")) { flash("メールアドレスの形式が正しくありません。", "error"); return; }
+  r.name = name; r.email = email;
+  save(); flash(`研究者「${name}」を更新しました。`); render();
+}
+function toggleResearcher(id) {
+  const r = db.researchers.find(x => x.id === id);
+  if (r.active && !confirm(`研究者「${r.name}」を無効化します。新しい登録で選べなくなります(過去の記録は残ります)。`)) return;
+  r.active = r.active ? 0 : 1;
+  save(); flash(`研究者「${r.name}」を${r.active ? "有効化" : "無効化"}しました。`); render();
+}
+function deleteResearcher(id) {
+  const r = db.researchers.find(x => x.id === id);
+  const used = db.items.filter(i => i.owner_id === id || i.out_by_id === id).length;
+  if (used) {
+    flash(`研究者「${r.name}」には入出庫記録が${used}件あるため削除できません。代わりに「無効化」を使ってください。`, "error");
+    return;
+  }
+  if (!confirm(`研究者「${r.name}」を削除します。よろしいですか？`)) return;
+  db.researchers = db.researchers.filter(x => x.id !== id);
+  log("削除", null, "", "", `未使用の研究者「${r.name}」をマスタから削除`);
+  save(); flash(`研究者「${r.name}」を削除しました。`); render();
+}
+
+/* ================= 設定・データ管理 ================= */
+function renderSettings() {
+  const bytes = (localStorage.getItem(KEY) || "").length;
+  return `<div class="page-head"><h1>設定</h1></div>
+  <div class="two-col">
+    <div class="card"><h2>⏱️ 期限の基本設定</h2>
+      <div class="form-grid">
+        <div><label>標準の保管日数</label>
+          <input type="number" id="s-days" value="${Number(db.config.default_storage_days)}" min="1" max="3650">
+          <div class="field-note">入庫時に期限を空欄にした場合、この日数が使われます。</div></div>
+        <div><label>「期限間近」とみなす日数</label>
+          <input type="number" id="s-warn" value="${Number(db.config.warn_days)}" min="0" max="60">
+          <div class="field-note">期限の何日前から黄色の警告を出すか。</div></div>
+      </div>
+      <div class="form-actions"><button class="btn" onclick="saveSettings()">設定を保存する</button></div>
+    </div>
+    <div class="card"><h2>💾 データ管理</h2>
+      <p class="muted" style="margin-top:0;">
+        データは<strong>このブラウザの中だけ</strong>に保存されています(現在 約${Math.max(1, Math.round(bytes / 1024))} KB・サーバー送信なし)。
+        ブラウザの履歴・サイトデータを消去すると記録も消えるため、定期的にバックアップを保存してください。</p>
+      <div class="form-actions" style="margin-top:0;">
+        <button class="btn btn-ghost" onclick="exportJSON()">バックアップを保存(JSON)</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">バックアップから復元</button>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="importJSON(this)">
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:18px 0;">
+      <p class="muted">📧 メールでの自動通知や、複数のPCからの同時利用が必要になったら、
+        研究室PCへの<a href="./" target="_blank" rel="noopener">インストール版</a>をご利用ください(データはJSONバックアップで引き継げます)。</p>
+      <div class="danger-zone" style="margin-top:16px;"><h3>全データの削除</h3>
+        <p class="muted" style="margin:0 0 10px;">マスタ・保管品・履歴をすべて消去して初期状態に戻します。</p>
+        <button class="btn btn-small btn-danger" onclick="wipeAll()">すべてのデータを削除する</button></div>
+    </div>
+  </div>`;
+}
+function saveSettings() {
+  const d = Number(document.getElementById("s-days").value);
+  const w = Number(document.getElementById("s-warn").value);
+  if (d >= 1) db.config.default_storage_days = Math.min(3650, Math.round(d));
+  if (w >= 0) db.config.warn_days = Math.min(60, Math.round(w));
+  save(); flash("設定を保存しました。"); render();
+}
+function exportJSON() {
+  dlFile(`fridge-backup-${todayISO()}.json`, JSON.stringify(db, null, 2), "application/json");
+}
+function importJSON(input) {
+  const file = input.files[0];
+  input.value = "";
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!d || !Array.isArray(d.items) || !Array.isArray(d.fridges) || !d.config || !d.seq) {
+        throw new Error("invalid format");
+      }
+      if (!confirm(`バックアップから復元します。現在のデータ(保管品${db.items.length}件)は上書きされます。よろしいですか？`)) return;
+      db = d; save(); flash("バックアップから復元しました。"); render();
+    } catch (e) {
+      flash("読み込めませんでした。このアプリで保存したJSONファイルを選んでください。", "error");
+    }
+  };
+  reader.readAsText(file);
+}
+function wipeAll() {
+  if (!confirm("マスタ・保管品・履歴をすべて削除します。この操作は元に戻せません。よろしいですか？")) return;
+  if (!confirm("本当に削除しますか？(バックアップ未保存なら「キャンセル」して先にJSONを保存してください)")) return;
+  db = emptyDb(); save(); flash("すべてのデータを削除しました。"); showView("dash");
+}
+
+/* ================= サンプルデータ ================= */
+function seedDemo() {
+  if (db.items.length || db.fridges.length) {
+    if (!confirm("サンプルデータを追加します。よろしいですか？")) return;
+  }
+  const f1 = { id: ++db.seq.fridge, name: "冷蔵庫A", temp: "4℃", location: "実験室1", active: 1 };
+  const f2 = { id: ++db.seq.fridge, name: "冷凍庫B", temp: "-20℃", location: "実験室1", active: 1 };
+  const f3 = { id: ++db.seq.fridge, name: "ディープフリーザーC", temp: "-80℃", location: "共通機器室", active: 1 };
+  db.fridges.push(f1, f2, f3);
+  const r1 = { id: ++db.seq.researcher, name: "山田 太郎", email: "", active: 1 };
+  const r2 = { id: ++db.seq.researcher, name: "鈴木 花子", email: "", active: 1 };
+  db.researchers.push(r1, r2);
+  const mk = (name, qty, pos, owner, fridge, storedOffset, expiryOffset, detail) => {
+    const s = new Date(); s.setDate(s.getDate() + storedOffset);
+    let e = null;
+    if (expiryOffset !== null) { e = new Date(); e.setDate(e.getDate() + expiryOffset); }
+    const ts = nowStr();
+    const it = {
+      id: ++db.seq.item, name, detail: detail || "", quantity: qty, position: pos,
+      owner_id: owner.id, fridge_id: fridge.id, stored_date: fmtD(s),
+      expiry_date: e ? fmtD(e) : null, status: ST.STORED,
+      out_date: null, out_by_id: null, out_note: "", created_at: ts, updated_at: ts,
+    };
+    db.items.push(it);
+    log("入庫", it.id, name, owner.name, `${fridge.name} に入庫(期限: ${it.expiry_date || "なし"})`);
+  };
+  mk("抗体サンプル(サンプル)", "10本", "2段目 左", r1, f1, -40, -5, "ロット12345");
+  mk("細胞培養液(サンプル)", "1箱", "1段目 右", r2, f1, -10, 3);
+  mk("PCR試薬(サンプル)", "2箱", "3段目 左", r1, f2, -3, 27);
+  mk("長期保存血清(サンプル)", "24本", "1段目 左", r2, f3, -60, null, "凍結融解不可");
+  save();
+  flash("サンプルデータを追加しました。ダッシュボードの赤・黄がアラート表示です。不要になったら「設定 → すべてのデータを削除」で消せます。");
+  render();
+}
+
+/* ================= 起動 ================= */
+showView("dash");
+</script>
+</body>
+</html>
