@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>研究室冷蔵庫管理システム — 導入ガイド</title>
+<meta name="description" content="研究室の共用冷蔵庫の在庫・保管期限・破棄を記録するローカルWebアプリの導入手順">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🧊%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --ground: #f2f7f9;
+    --surface: #ffffff;
+    --surface-2: #e9f1f5;
+    --ink: #16323d;
+    --ink-sub: #52707d;
+    --ink-faint: #7d97a3;
+    --line: #d7e3e9;
+    --accent: #0e7490;
+    --accent-deep: #0c4a6e;
+    --accent-wash: #e3f3f7;
+    --warn: #9a5b0d;
+    --warn-wash: #faf3e3;
+    --warn-line: #ecd9ae;
+    --code-bg: #eef4f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0e1a20;
+      --surface: #152730;
+      --surface-2: #1b3a47;
+      --ink: #d8e7ee;
+      --ink-sub: #93aeba;
+      --ink-faint: #6c8894;
+      --line: #24404c;
+      --accent: #35b3d5;
+      --accent-deep: #7fd3e8;
+      --accent-wash: #103642;
+      --warn: #e0a44e;
+      --warn-wash: #2b2413;
+      --warn-line: #4d3d1c;
+      --code-bg: #10222b;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI",
+                 "Yu Gothic", Meiryo, system-ui, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.85;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 48px 22px 80px; }
+
+  .eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: .18em;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 30px; line-height: 1.35; margin: 0 0 10px;
+    font-weight: 800; letter-spacing: .01em; text-wrap: balance;
+  }
+  .lede { color: var(--ink-sub); margin: 0 0 8px; }
+  .head-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+  .tag {
+    font-size: 12.5px; font-weight: 700; color: var(--accent-deep);
+    background: var(--accent-wash); border: 1px solid var(--line);
+    border-radius: 999px; padding: 3px 12px;
+  }
+
+  .dl-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; align-items: center; }
+  .btn-dl {
+    display: inline-block; background: var(--accent); color: #fff;
+    font-weight: 800; font-size: 15px; text-decoration: none;
+    padding: 12px 22px; border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(14, 116, 144, .3);
+  }
+  .btn-dl:hover { background: var(--accent-deep); }
+  .btn-ghost {
+    display: inline-block; color: var(--accent-deep); font-weight: 700;
+    font-size: 14px; text-decoration: none;
+    padding: 11px 18px; border-radius: 10px;
+    border: 1.5px solid var(--line); background: var(--surface);
+  }
+  .btn-ghost:hover { background: var(--surface-2); }
+
+  section { margin-top: 52px; }
+  h2 {
+    font-size: 20px; font-weight: 800; margin: 0 0 6px;
+    padding-top: 18px; border-top: 3px solid var(--accent);
+    display: inline-block;
+  }
+  .h2-sub { color: var(--ink-sub); font-size: 14px; margin: 0 0 20px; }
+
+  .step { display: flex; gap: 16px; margin-bottom: 26px; }
+  .step-num {
+    flex: 0 0 34px; height: 34px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-weight: 800; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 2px; font-variant-numeric: tabular-nums;
+  }
+  .step-body h3 { margin: 0 0 6px; font-size: 16.5px; font-weight: 800; }
+  .step-body p { margin: 0 0 8px; }
+  .step-once {
+    font-size: 11.5px; font-weight: 700; letter-spacing: .08em;
+    color: var(--ink-faint); margin-left: 8px;
+  }
+
+  code {
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: .92em; background: var(--code-bg);
+    border: 1px solid var(--line); border-radius: 5px; padding: 1px 7px;
+    white-space: nowrap;
+  }
+  a { color: var(--accent); font-weight: 600; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .callout {
+    background: var(--warn-wash); border: 1px solid var(--warn-line);
+    border-left: 4px solid var(--warn);
+    border-radius: 8px; padding: 12px 16px; margin: 10px 0 0;
+    font-size: 14px; color: var(--ink);
+  }
+  .callout strong { color: var(--warn); }
+  .note {
+    background: var(--accent-wash); border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 12px 16px; margin: 10px 0 0; font-size: 14px;
+  }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th {
+    text-align: left; font-size: 12.5px; letter-spacing: .04em;
+    color: var(--ink-sub); background: var(--surface-2);
+    padding: 9px 14px; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { font-weight: 700; white-space: nowrap; }
+
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+
+  footer {
+    margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
+    color: var(--ink-faint); font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Setup Guide</div>
+    <h1>🧊 研究室冷蔵庫管理システム<br>導入ガイド</h1>
+    <p class="lede">共用冷蔵庫の「いつ・誰が・何を・どこに入れ、いつ破棄したか」を記録するアプリを、研究室のWindows PCにインストールする手順です。</p>
+    <div class="head-meta">
+      <span class="tag">Windows 10 / 11</span>
+      <span class="tag">Mac対応</span>
+      <span class="tag">所要 約10分</span>
+      <span class="tag">外部サーバー不使用</span>
+    </div>
+    <div class="dl-row">
+      <a class="btn-dl" href="https://github.com/tama0214a/fridge-manager/releases/latest/download/fridge-manager.zip">⬇️ fridge-manager.zip をダウンロード</a>
+      <a class="btn-ghost" href="https://github.com/tama0214a/fridge-manager">ソースコード（GitHub）</a>
+    </div>
+  </header>
+
+  <section>
+    <h2>インストール（Windows）</h2>
+    <p class="h2-sub">研究室の共用PC 1台にインストールすれば、他のメンバーはブラウザで開くだけで使えます。</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Pythonをインストール<span class="step-once">初回のみ</span></h3>
+        <p><a href="https://www.python.org/downloads/">python.org/downloads</a> から最新版（3.10以上）を入手し、インストーラー最初の画面で<strong>「Add python.exe to PATH」に必ずチェック</strong>してから Install Now を押します。</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>アプリを配置</h3>
+        <p>上のボタンからダウンロードしたzipを展開し、フォルダごと <code>C:\fridge-manager</code> にコピーします。OneDrive・Dropboxの同期フォルダ内は避けてください（データベースが同期競合を起こすことがあります）。</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>セットアップを実行<span class="step-once">初回のみ</span></h3>
+        <p><code>setup.bat</code> をダブルクリック。「Setup complete.」と出たら完了です。</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h3>起動</h3>
+        <p><code>start.bat</code> をダブルクリック。黒いウィンドウが開き、ブラウザで管理画面（<code>http://localhost:8341/</code>）が自動的に開きます。黒いウィンドウは<strong>閉じずに最小化</strong>してください。</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h3>最初の設定</h3>
+        <p>画面上部の<strong>マスタ管理</strong>で、冷蔵庫（名前・温度帯・場所）と研究者（氏名・メールアドレス）を登録します。これで全員が「＋ 入庫登録」から使い始められます。</p>
+      </div>
+    </div>
+
+    <div class="note">Macの場合は、展開したフォルダの <code>start.command</code> をダブルクリックするだけです（初回は自動セットアップ）。別のMacで「開発元が未確認」と出たら右クリック→「開く」で起動できます。</div>
+  </section>
+
+  <section>
+    <h2>日常の使い方</h2>
+    <p class="h2-sub">操作はすべてブラウザ画面から。履歴が自動で残ります。</p>
+    <div class="table-scroll">
+      <table>
+        <tr><th>したいこと</th><th>操作</th></tr>
+        <tr><td>物を入れた</td><td>「＋ 入庫登録」→ 品名・自分の名前・冷蔵庫・位置（1〜3段 × 左右）を選ぶ。期限はクイックボタン（+1週間〜+1年）か「期限なし」</td></tr>
+        <tr><td>捨てた・使い切った</td><td>一覧の「出庫・破棄」→ 種別(破棄／使用)と自分の名前を選ぶ</td></tr>
+        <tr><td>期限チェック</td><td>ダッシュボードを開く。<span style="color:#c2410c;font-weight:700;">赤＝期限切れ</span>・黄＝期限間近</td></tr>
+        <tr><td>記録を調べる</td><td>「履歴」で検索、CSV出力でExcelへ</td></tr>
+        <tr><td>間違えた</td><td>一覧の「編集」から修正・取り消し・削除</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>メール通知を有効にする</h2>
+    <p class="h2-sub">オプション。毎日決まった時刻に、期限切れ・期限間近の所有者と管理者へ自動メールを送ります。</p>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body"><p><strong>設定</strong>ページで「毎日メールで自動通知する」にチェックし、通知時刻と管理者アドレスを入力します。</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <p>SMTP情報を入力して保存します。Gmail（研究室共用アカウント推奨）の場合：サーバー <code>smtp.gmail.com</code>、ポート <code>587</code>、暗号化 STARTTLS。</p>
+        <div class="callout"><strong>Gmailは「アプリパスワード」が必要です。</strong> Googleアカウント → セキュリティ → 2段階認証を有効化 → アプリパスワードで16桁を発行し、それをパスワード欄に入力します。大学のメールサーバーを使う場合は情報基盤センターにSMTP設定を確認してください。</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body"><p>「テスト送信」で受信を確認し、「通知チェックを今すぐ実行」で本番の通知内容を確かめます。</p></div>
+    </div>
+    <div class="note">通知はPCが起動している間だけ動きます。電源設定でスリープを「なし」にし、下の自動起動も設定しておくのがおすすめです。</div>
+  </section>
+
+  <section>
+    <h2>あわせて設定しておくと便利</h2>
+    <p class="h2-sub">どちらも数分で終わります。</p>
+    <div class="table-scroll">
+      <table>
+        <tr><th>設定</th><th>手順</th></tr>
+        <tr>
+          <td>PC起動時に自動起動</td>
+          <td><code>Win + R</code> → <code>shell:startup</code> でスタートアップフォルダを開き、<code>start_hidden.vbs</code> のショートカットを入れる。以後はサインインと同時に画面なしで起動（ブラウザのお気に入りに <code>http://localhost:8341/</code> を登録）。停止は <code>stop.bat</code></td>
+        </tr>
+        <tr>
+          <td>他のPC・スマホから利用</td>
+          <td>管理PCで <code>ipconfig</code> を実行してIPv4アドレスを確認し、同じ研究室ネットワークの端末から <code>http://（そのIP）:8341/</code> を開く。ファイアウォールの確認が出たら「プライベートネットワーク」で許可。<strong>メンバー側のインストールは不要です</strong></td>
+        </tr>
+        <tr>
+          <td>バックアップ</td>
+          <td>設定ページの「今すぐバックアップを作成」。<code>data</code> フォルダごとUSBメモリ等へコピーすれば完全な控えに</td>
+        </tr>
+      </table>
+    </div>
+    <div class="note">ログイン機能はありません。研究室内ネットワークだけで使い、外部には公開しないでください。</div>
+  </section>
+
+  <section>
+    <h2>うまくいかないとき</h2>
+    <p class="h2-sub">詳しくは同梱の README.md にも記載しています。</p>
+    <div class="table-scroll">
+      <table>
+        <tr><th>症状</th><th>対処</th></tr>
+        <tr><td>Python not found</td><td>手順1をやり直す（PATHチェックを忘れずに）</td></tr>
+        <tr><td>ポート使用中エラー</td><td><code>data\config.json</code> の <code>"port": 8341</code> を <code>8342</code> などに変えて再起動</td></tr>
+        <tr><td>メールが送れない</td><td>設定ページの「テスト送信」のエラー表示と「メール送信ログ」を確認。Gmailはアプリパスワード必須</td></tr>
+        <tr><td>他のPCから見えない</td><td>ファイアウォールでTCPポート8341を許可。PCのIPアドレス変更にも注意</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    データはすべて管理PC内の <code>data\fridge.db</code>（SQLite）に保存されます。アプリ更新時は <code>data</code> フォルダ以外を新しいファイルで上書きしてください。<br>
+    ソースコード・最新版: <a href="https://github.com/tama0214a/fridge-manager">github.com/tama0214a/fridge-manager</a>
+  </footer>
+</div>
+</body>
+</html>

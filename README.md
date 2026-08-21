@@ -2,6 +2,8 @@
 
 研究室の共用冷蔵庫に「いつ・誰が・何を・どの冷蔵庫に入れ、いつ破棄したか」を記録・追跡するアプリです。研究室のWindows PCにインストールして、ブラウザで操作します。
 
+**[📖 導入ガイド（Web版）](https://tama0214a.github.io/fridge-manager/)** ｜ **[⬇️ 最新版をダウンロード](https://github.com/tama0214a/fridge-manager/releases/latest/download/fridge-manager.zip)**
+
 ## 主な機能
 
 - **入庫登録** — 品名・数量・所有者・冷蔵庫・位置・入庫日・保管期限・メモを記録
